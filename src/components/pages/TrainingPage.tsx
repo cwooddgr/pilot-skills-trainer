@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { ModuleA } from '@/modules/ModuleA'
 import { ModuleB } from '@/modules/ModuleB'
 import { ModuleC } from '@/modules/ModuleC'
+import { ModuleD } from '@/modules/ModuleD'
 import type { Session, ModuleRun, Trial, UserProfile, HardwareProfile } from '@/types'
 import {
   createSession,
@@ -142,6 +143,35 @@ export function TrainingPage() {
     setActiveModuleRun(moduleRun)
   }
 
+  const startModuleD = async () => {
+    if (!userProfile) return
+
+    // Create new session if needed
+    let session = activeSession
+    if (!session) {
+      session = {
+        id: crypto.randomUUID(),
+        userProfileId: userProfile.id,
+        timestamp: Date.now(),
+        moduleRuns: [],
+      }
+      await createSession(session)
+      setActiveSession(session)
+    }
+
+    // Create module run
+    const moduleRun: ModuleRun = {
+      id: crypto.randomUUID(),
+      sessionId: session.id,
+      moduleId: 'D',
+      variant: 'adaptive',
+      startTimestamp: Date.now(),
+      trials: [],
+    }
+    await createModuleRun(moduleRun)
+    setActiveModuleRun(moduleRun)
+  }
+
   const handleTrialComplete = async (trial: Trial) => {
     if (!activeModuleRun || !activeSession) return
 
@@ -158,14 +188,36 @@ export function TrainingPage() {
   }
 
   const adjustDifficulty = (trial: Trial) => {
-    if (!trial.metrics.tracking) return
+    let success = false
 
-    const rmse = trial.metrics.tracking.rmse
+    // Tracking modules (A, B)
+    if (trial.metrics.tracking) {
+      const rmse = trial.metrics.tracking.rmse
+      // Simple adaptive algorithm: lower RMSE = higher success
+      // Threshold inversely related to difficulty
+      const threshold = 0.3 / (1 + currentDifficulty)
+      success = rmse < threshold
+    }
+    // Spatial module (D)
+    else if (trial.metrics.spatial) {
+      const accuracy = trial.metrics.spatial.accuracy
+      // Target accuracy band: 70-85%
+      success = accuracy > 0.85
+      const struggling = accuracy < 0.70
 
-    // Simple adaptive algorithm: lower RMSE = higher success
-    // Threshold inversely related to difficulty
-    const threshold = 0.3 / (1 + currentDifficulty)
-    const success = rmse < threshold
+      let newDifficulty = currentDifficulty
+      if (success) {
+        newDifficulty = Math.min(1.0, currentDifficulty + 0.05)
+      } else if (struggling) {
+        newDifficulty = Math.max(0.1, currentDifficulty - 0.05)
+      }
+      setCurrentDifficulty(newDifficulty)
+      return
+    }
+    // Other modules don't adjust difficulty yet
+    else {
+      return
+    }
 
     let newDifficulty = currentDifficulty
 
@@ -294,15 +346,21 @@ export function TrainingPage() {
             </div>
           </button>
 
-          <div className="bg-slate-800 rounded-lg p-6 border border-slate-700 opacity-50">
-            <h3 className="text-xl font-semibold mb-2 text-slate-500">Module D</h3>
-            <p className="text-slate-400 text-sm mb-3">Spatial Orientation</p>
+          <button
+            onClick={startModuleD}
+            className="bg-slate-800 hover:bg-slate-700 rounded-lg p-6 text-left transition-colors border border-slate-700 hover:border-blue-500"
+          >
+            <h3 className="text-xl font-semibold mb-2 text-blue-400">Module D</h3>
+            <p className="text-slate-300 text-sm mb-3">Mental Rotation</p>
             <div className="flex gap-2 flex-wrap">
-              <span className="px-2 py-1 bg-slate-900 rounded text-xs text-slate-500">
-                Coming Soon
+              <span className="px-2 py-1 bg-slate-900 rounded text-xs text-slate-400">
+                Spatial Reasoning
+              </span>
+              <span className="px-2 py-1 bg-slate-900 rounded text-xs text-slate-400">
+                Shape Matching
               </span>
             </div>
-          </div>
+          </button>
         </div>
       )}
 
@@ -325,6 +383,14 @@ export function TrainingPage() {
 
       {activeModuleRun && activeModuleRun.moduleId === 'C' && (
         <ModuleC
+          moduleRunId={activeModuleRun.id}
+          difficulty={currentDifficulty}
+          onTrialComplete={handleTrialComplete}
+        />
+      )}
+
+      {activeModuleRun && activeModuleRun.moduleId === 'D' && (
+        <ModuleD
           moduleRunId={activeModuleRun.id}
           difficulty={currentDifficulty}
           onTrialComplete={handleTrialComplete}

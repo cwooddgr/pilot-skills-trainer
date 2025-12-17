@@ -1,7 +1,7 @@
 # Development Progress
 
-**Last Updated:** 2025-12-16
-**Status:** Module A fully implemented and tested
+**Last Updated:** 2025-12-17
+**Status:** Modules A, B, C complete and tested. Module D in progress.
 
 ---
 
@@ -13,52 +13,95 @@
 - ✅ React Router with navigation
 - ✅ Complete directory structure (`components/`, `modules/`, `types/`, `utils/`, `lib/`)
 - ✅ Build system working with no errors
+- ✅ DESIGN_RATIONALE.md added to document clean-room constraints
 
 ### Data Layer
 - ✅ TypeScript type definitions for all canonical data objects:
   - `UserProfile`, `HardwareProfile`, `Session`, `ModuleRun`, `Trial`, `EventSample`
-  - All metrics interfaces: `TrackingMetrics`, `AttentionMetrics`, `MultitaskMetrics`, etc.
+  - All metrics interfaces: `TrackingMetrics`, `AttentionMetrics`, `SpatialMetrics`, `MultitaskMetrics`
 - ✅ IndexedDB wrapper (`src/lib/db.ts`) with full CRUD operations
 - ✅ Data export functionality built into DB layer
 
-### Module A: 1D Pursuit Tracking
+### Module A: 1D Pursuit Tracking ✅
 - ✅ Three target generation algorithms implemented:
   - Ornstein-Uhlenbeck process (mean-reverting random walk)
   - Sum of sinusoids with varying frequencies
   - Piecewise-constant acceleration with bounded jerk
 - ✅ Input system (`src/utils/inputSystem.ts`):
-  - Keyboard control (Up/Down arrow keys)
+  - Keyboard control (Arrow keys or WASD)
   - Mouse control (vertical axis)
   - Architecture ready for gamepad integration
   - `requestAnimationFrame` based update loop
 - ✅ Canvas rendering at 60 FPS with visual feedback
-- ✅ Metrics calculation (`src/utils/metricsCalculation.ts`):
+- ✅ Metrics calculation (`src/utils/trackingMetrics.ts`):
   - MAE (Mean Absolute Error)
   - RMSE (Root Mean Squared Error)
   - Time on target (percentage)
-  - Overshoot count and magnitude
-  - Smoothness (input variation metric)
-- ✅ Trial management:
-  - 30-second trials
-  - Automatic data persistence to IndexedDB
-  - Post-trial metrics display
-- ✅ Session management in TrainingPage:
-  - Automatic user profile creation
-  - Session and module run tracking
-  - Basic adaptive difficulty controller
+  - Reacquisition time
+- ✅ Trial management with automatic IndexedDB persistence
+- ✅ Adaptive difficulty based on RMSE thresholds
+
+### Module B: 2D Pursuit Tracking ✅
+- ✅ Full 2D target generation:
+  - Momentum-based algorithm with inertia and friction
+  - Curvilinear algorithm with smooth curved paths
+- ✅ 2D input system:
+  - Mouse (horizontal) + WASD (vertical) control
+  - Pointer Lock API for unlimited mouse movement
+  - Configurable sensitivity
+- ✅ 800x600 canvas with real-time visual feedback
+- ✅ 2D metrics calculation:
+  - MAE, RMSE (2D distance)
+  - Time on target (circular tolerance)
+  - Reacquisition time after target loss
+- ✅ Extended input system to support full 2D control
+
+### Module C: Auditory Selective Attention ✅
+- ✅ Web Audio API integration for pure tone generation
+- ✅ Three tone frequencies: 440Hz, 587Hz, 880Hz
+- ✅ Go/No-Go task implementation:
+  - Preparation phase with target tone preview
+  - 30 stimuli per trial with jittered ISI (1.0-2.0s)
+  - Space bar response mechanism
+- ✅ Signal detection metrics:
+  - d-prime (d') calculation
+  - Hit rate and false alarm rate
+  - Reaction time analysis (mean, median, distribution)
+- ✅ Fixed critical bugs:
+  - React closure bug in keyboard event handler (used ref instead of state)
+  - Visual design flaw where colored circles revealed tone type
+  - Final stimulus timing issue (response window)
+
+### Module D: Mental Rotation ⚠️ (In Progress)
+- ✅ 2D shape rendering with SVG paths
+- ✅ Pre-defined asymmetric shapes (F, L, arrow, P, 7)
+- ✅ Proper rotation and mirror transformations
+- ✅ Spatial metrics (accuracy, reaction time, speed-accuracy tradeoff)
+- ⚠️ **Known Issue**: Distractor generation can produce duplicate-looking options
+  - Shapes with symmetries cause mirrored versions to look identical
+  - Distractor pool logic needs refinement
 
 ### UI/UX
 - ✅ Home page with project overview
 - ✅ Navigation between all main sections
-- ✅ Training page with module selection
+- ✅ Training page with module selection (A, B, C, D)
 - ✅ Placeholder pages for Hardware, Analytics, Export
-- ✅ Session status display
-- ✅ Module A fully interactive with controls
+- ✅ Session status display with trial counts
+- ✅ All modules fully interactive with real-time feedback
+
+### Adaptive Difficulty System
+- ✅ Targets 70-85% success rate across modules
+- ✅ Incremental adjustment (±0.05 per trial)
+- ✅ Module-specific difficulty scaling:
+  - **Module A/B**: Target speed and motion complexity
+  - **Module C**: Tone similarity and ISI jitter (not yet implemented)
+  - **Module D**: Rotation granularity (90° vs 45°) and mirror distractors
 
 ---
 
 ## 🐛 Bugs Fixed
 
+### Module A/B
 1. **Input axis mismatch** - Module A was rendering vertically but reading horizontal mouse input
    - Fixed: Changed from `inputState.x` to `inputState.y`
    - Changed keyboard from ArrowLeft/Right to ArrowUp/Down
@@ -73,55 +116,103 @@
 4. **Missing foreign keys** - ModuleRun and Trial lacked sessionId/moduleRunId
    - Fixed: Added proper relational IDs to type definitions
 
+### Module C
+5. **Keyboard handler closure bug** - Space bar not registering during trials
+   - Root cause: Event listener captured stale `trialState` value
+   - Fixed: Used `isTrialRunning` ref instead of checking state in event handler
+
+6. **Visual design revealing answers** - Colored circles showed which tone was playing
+   - Fixed: Made all stimulus indicators neutral gray
+   - Removed color coding from preparation phase
+
+7. **Final stimulus timing** - Trial ended immediately without response window
+   - Fixed: Added setTimeout with response window duration after last tone
+
+### Module D
+8. **Answers all incorrect** - 3D rotation visualization was oversimplified
+   - Fixed: Complete rewrite using 2D shapes with proper SVG path rendering
+   - Added mathematical rotation/mirror transformation functions
+
+9. **Relative direction angle calculation** - Sign was inverted (left/right swapped)
+   - Fixed: Changed from `queryAngle - forwardAngle` to `forwardAngle - queryAngle`
+   - (Later removed entire relative direction variant per user feedback)
+
+10. **Unused import warnings** - Various cleanup across modules
+    - Fixed: Removed unused imports and functions
+
 ---
 
 ## 📊 Performance Tested
 
-Module A has been manually tested with real user input:
+### Module A (1D Tracking)
 - MAE: ~0.05-0.15 (working well)
 - RMSE: ~0.07-0.15 (working well)
 - Time on Target: ~20-30% at difficulty 0.3
-- Smoothness: ~0.01-0.05 (appropriate range)
-- Overshoot count: ~15 per 30s trial
+- Reacquisition: Fast recovery after overshoots
 
-Adaptive difficulty is functional but uses simple threshold-based algorithm.
+### Module B (2D Tracking)
+- User tested with mouse + WASD controls
+- Pointer Lock API working correctly
+- 2D distance calculations accurate
+- Motion feels smooth and responsive
+
+### Module C (Auditory Attention)
+- User results: 94.7% hit rate, 0% false alarm rate
+- d-prime: 3.95 (excellent discrimination)
+- Reaction times: Reasonable distribution
+- No false visual cues remaining
+
+### Module D (Mental Rotation)
+- **Still needs work**: Multiple correct answers appearing
+- Shape rendering working correctly
+- Rotation/mirror transformations accurate
+- Issue is in distractor generation logic
 
 ---
 
 ## 🎯 Next Steps
 
-Following PROJECT.md recommended build order:
-
 ### Immediate Priority
-1. **Module B: 2D Pursuit Tracking**
-   - Extend Module A to 2D (x and y axes)
-   - Add reacquisition time metrics
-   - Implement curvilinear target paths
+1. **Fix Module D distractor generation**
+   - Current issue: Symmetric shapes produce identical-looking mirrored versions
+   - Need to ensure all 4 options are visually distinct
+   - Consider using only highly asymmetric shapes
+   - Improve distractor pool filtering logic
 
+### High Priority
 2. **Analytics Page**
    - Performance visualization over time
    - Error vs time plots
    - Reaction time histograms
    - Progress tracking across sessions
+   - Trend analysis for adaptive difficulty
+
+3. **Module E: Dual-Task Motor Control**
+   - Combine Module A and Module B simultaneously
+   - Track dual-task cost metrics
+   - Separate performance tracking for each component
 
 ### Medium Priority
-3. **Hardware Detection & Calibration**
+4. **Module F: Triple-Task**
+   - Module E + Module C simultaneously
+   - Full cognitive load scenario
+   - Interrupt handling mechanics
+
+5. **Module G: Interrupt Handling Under Load**
+   - Random interrupts during tracking tasks
+   - Measure recovery time and accuracy degradation
+
+6. **Data Export UI**
+   - JSON export for all session data
+   - CSV export for metrics analysis
+   - Per-session or bulk export options
+
+### Lower Priority
+7. **Hardware Detection & Calibration**
    - Gamepad API integration
    - Device detection UI
    - Axis mapping interface
    - Deadzone/sensitivity configuration
-   - Calibration persistence
-
-4. **Module C: Auditory Selective Attention**
-   - Web Audio API integration
-   - Go/No-Go task variant
-   - Signal detection metrics (d′)
-
-### Lower Priority
-5. **Module E: Dual-Task Motor Control** (Module A + B simultaneously)
-6. **Module G: Interrupt Handling Under Load**
-7. **Module F: Triple-Task** (Module E + C)
-8. **Module D: Spatial Orientation Microtasks**
 
 ---
 
@@ -132,66 +223,91 @@ Following PROJECT.md recommended build order:
 - **State for UI**: Using `useState` only for UI-relevant state (trial status, metrics display)
 - **Timestamp source**: `performance.now()` for all event timestamps (monotonic, high-resolution)
 - **Data persistence**: All trial data automatically saved to IndexedDB on completion
+- **Refs for event handlers**: Use refs when event listeners need access to current state to avoid closure bugs
 
 ### Code Organization
 - **Utilities are pure functions** where possible (target generators, metrics calculation)
 - **Input system is a class** to manage complex stateful event listeners
 - **Module components** are responsible for their own rendering and trial management
 - **Page components** handle session/run management and coordinate between modules
+- **Separate files for task generation**: `targetGeneration.ts`, `spatialTasks.ts`, etc.
 
 ### Styling Conventions
 - Dark theme: `bg-slate-900` base, `bg-slate-800` cards
 - Accent color: `text-blue-400` / `bg-blue-600`
 - Status colors: green (active), red (stop), slate (inactive)
 - Monospace font for numeric values and codes
+- Consistent card layout with rounded corners and padding
 
 ---
 
 ## 📝 Technical Notes
 
 ### Input System
-- Keyboard uses accumulative position control (velocity-based)
-- Mouse uses direct position control
-- Both normalized to -1 to 1 range
-- Gamepad architecture is ready but not implemented (see TODO in `inputSystem.ts`)
+- **Module A**: Keyboard (Arrow/WASD) or Mouse (vertical only)
+- **Module B**: Mouse (horizontal) + WASD (vertical) + Pointer Lock API
+- **Module C**: Space bar for Go/No-Go responses
+- All inputs normalized to appropriate ranges
+- Configurable sensitivity via settings (not yet exposed in UI)
 
 ### Target Generation
-- All generators implement `TargetGenerator` interface
+- **Module A**: Three algorithms (Ornstein-Uhlenbeck, sinusoids, piecewise acceleration)
+- **Module B**: Two algorithms (momentum-based, curvilinear paths)
+- All generators implement standard interface
 - Difficulty parameter (0-1) scales motion characteristics
 - Bounds are enforced to keep targets within canvas
-- Each trial randomly selects one of three algorithms for variety
+
+### Audio System (Module C)
+- Web Audio API with OscillatorNode for pure tones
+- Three frequencies: 440Hz (A4), 587Hz (D5), 880Hz (A5)
+- Gain ramping to prevent clicks (10ms attack/release)
+- Jittered ISI: 1.0-2.0s uniform distribution
+- User selects target tone during preparation phase
+
+### Spatial Tasks (Module D)
+- Pre-defined 2D shapes as Point2D arrays
+- Transform functions: `rotatePoint()`, `mirrorPoint()`, `transformShape()`
+- SVG path rendering with automatic bounds calculation and centering
+- 90° rotation steps at low difficulty, 45° at high difficulty
+- Distractor generation prioritizes mirrors at high difficulty
 
 ### Metrics Calculation
-- Smoothness metric measures input variation, not jerk
+- **Tracking**: MAE, RMSE, time on target, reacquisition time
+- **Attention**: d-prime, hit rate, false alarm rate, reaction time stats
+- **Spatial**: Accuracy, mean reaction time, speed-accuracy tradeoff
 - All metrics stored with full sample data for later analysis
 - Downsampling will be needed for analytics visualization
-- Success rate for adaptive difficulty based on RMSE threshold
 
 ### Adaptive Difficulty
-- Current implementation: simple threshold-based (RMSE < 0.3 / (1 + difficulty))
-- Adjusts by ±0.05 per trial
+- Current implementation: threshold-based per module
+- **Module A/B**: RMSE threshold inversely proportional to difficulty
+- **Module D**: Accuracy bands (70-85% target), adjust ±0.05
 - Bounded: 0.1 to 1.0
-- Could be improved with more sophisticated algorithms (PID controller, success rate windowing)
+- Could be improved with success rate windowing
 
 ---
 
 ## 🚧 Known Limitations & Technical Debt
 
-1. **Adaptive difficulty is basic** - Uses simple RMSE threshold, could use success rate bands from PROJECT.md (70-85%)
+1. **Module D distractor generation is buggy** - Can produce duplicate-looking options due to shape symmetries
 
-2. **No gamepad support yet** - Architecture is ready but Gamepad API polling not implemented
+2. **No analytics visualization yet** - Analytics page is placeholder
 
-3. **No data visualization** - Analytics page is placeholder
+3. **No data export UI** - Backend functions exist but no user interface
 
-4. **No data export UI** - Backend functions exist but no user interface
+4. **Adaptive difficulty for Module C not implemented** - Difficulty parameter exists but doesn't affect tone similarity or ISI jitter
 
-5. **Module A keyboard control uses accumulative position** - Might feel unnatural compared to velocity control (worth testing with users)
+5. **Hard-coded trial parameters** - Duration, number of stimuli, etc. should be configurable
 
-6. **Hard-coded trial duration** - Should be configurable per module
+6. **No baseline assessment** - PROJECT.md specifies optional baseline, not implemented
 
-7. **No baseline assessment** - PROJECT.md specifies optional baseline, not implemented
+7. **Session management is simple** - No session naming, notes, or metadata
 
-8. **Session management is simple** - No session naming, notes, or metadata
+8. **No gamepad support yet** - Architecture is ready but Gamepad API polling not implemented
+
+9. **Pointer Lock exit not handled gracefully** - User can exit pointer lock without app knowing
+
+10. **Module D removed relative direction variant** - Was deemed too trivial, but left some unused code
 
 ---
 
@@ -212,31 +328,61 @@ All data stored locally in IndexedDB:
 - ModuleRun → Session (many:1)
 - Trial → ModuleRun (many:1)
 
+**Data Flow:**
+1. User starts module → Create Session (if needed)
+2. Create ModuleRun linked to Session
+3. User completes trial → Create Trial with full EventSample data
+4. Calculate metrics and store in Trial
+5. Update adaptive difficulty for next trial
+
 ---
 
 ## 🎮 Current User Flow
 
 1. Navigate to Training page
 2. System auto-creates UserProfile and HardwareProfile on first visit
-3. Click "Module A" to start a session
-4. Click "Start Trial" to begin 30-second trial
-5. Control cursor with mouse or Up/Down arrows
-6. Trial ends automatically after 30s
+3. Click module card (A, B, C, or D) to start session
+4. System creates Session and ModuleRun
+5. Click "Start Trial" to begin
+6. Complete trial (30s for tracking, 30 stimuli for attention, 15 tasks for spatial)
 7. View metrics in results card
-8. Run more trials (difficulty adapts automatically)
-9. Click "End Session" when done
+8. Difficulty adapts automatically
+9. Run more trials or return to module selection
+10. Click "End Session" when done
 
 ---
 
-## 🔍 Testing Recommendations
+## 🔍 Testing Checklist
 
-Before proceeding to next module:
-- [ ] Test Module A with various difficulty levels manually
-- [ ] Verify data persists in IndexedDB (check browser DevTools)
-- [ ] Test keyboard vs. mouse input thoroughly
-- [ ] Verify adaptive difficulty increases/decreases appropriately
-- [ ] Test session end/restart flow
-- [ ] Check metrics calculation with edge cases (very good/bad performance)
+### Module A ✅
+- [x] Test with keyboard (Up/Down arrows)
+- [x] Test with keyboard (WASD)
+- [x] Test with mouse (vertical axis)
+- [x] Verify metrics display correctly
+- [x] Verify data persists in IndexedDB
+- [x] Test adaptive difficulty increase/decrease
+
+### Module B ✅
+- [x] Test mouse + WASD controls
+- [x] Verify Pointer Lock API works
+- [x] Test 2D distance calculations
+- [x] Verify metrics display correctly
+- [x] Test reacquisition time tracking
+
+### Module C ✅
+- [x] Verify all three tone frequencies are distinct
+- [x] Test Go/No-Go response (Space bar)
+- [x] Verify d-prime calculation
+- [x] Test preparation phase (tone preview)
+- [x] Verify no visual cues reveal answers
+- [x] Test final stimulus response window
+
+### Module D ⚠️
+- [ ] Verify all 4 options are visually distinct (FAILING)
+- [x] Test rotation transformations
+- [x] Test mirror transformations
+- [x] Verify metrics calculation
+- [ ] Test across multiple difficulty levels
 
 ---
 
@@ -244,6 +390,7 @@ Before proceeding to next module:
 
 - **PROJECT.md**: Authoritative requirements and constraints
 - **TECHNICAL.md**: Implementation specifications and algorithms
+- **DESIGN_RATIONALE.md**: Clean-room design decisions and ethical boundaries
 - **README.md**: Setup and project structure documentation
 
 ---
@@ -256,8 +403,36 @@ This project is being built with Claude Code CLI. Best practices:
 - Note any deviations from PROJECT.md/TECHNICAL.md specifications
 - Use clear commit messages when code is working
 
-**Session Context:**
-- Module A completed and tested by user
-- Input controls working correctly (vertical axis)
-- Metrics displaying reasonable values
-- Ready to proceed to Module B or Analytics next
+**Current Session Context:**
+- Modules A, B, C fully complete and tested
+- Module D has critical bug in distractor generation
+- Next: Fix Module D, then build Analytics page or Module E
+- User prefers to pause on Module D and resume later
+
+---
+
+## 🎓 Lessons Learned
+
+1. **React closure bugs are subtle** - Event listeners that capture state values can cause hard-to-debug issues. Solution: use refs for values that change frequently and are accessed in event handlers.
+
+2. **Visual design affects validity** - Module C's colored circles inadvertently provided visual cues that defeated the auditory discrimination test. Always consider what information is being leaked through UI.
+
+3. **Spatial tasks are harder than expected** - Generating visually distinct rotation/mirror combinations requires careful consideration of shape symmetries. Simple geometric shapes can have unexpected symmetries.
+
+4. **Start simple, then add complexity** - Module D attempted both mental rotation and relative direction tasks. User feedback led to focusing on just mental rotation, which was more cognitively demanding.
+
+5. **Test early, test often** - User testing revealed bugs that weren't apparent during development (symmetry issues, timing problems).
+
+6. **Document design decisions** - DESIGN_RATIONALE.md added to explicitly document clean-room constraints and prevent scope creep toward exam simulation.
+
+---
+
+## 📈 Project Statistics
+
+- **Total Modules Planned**: 7 (A-G)
+- **Modules Complete**: 3 (A, B, C)
+- **Modules In Progress**: 1 (D)
+- **Modules Remaining**: 3 (E, F, G)
+- **Known Bugs**: 1 critical (Module D distractors)
+- **Build Status**: ✅ Passing
+- **Bundle Size**: ~230 KB (gzipped: ~69 KB)

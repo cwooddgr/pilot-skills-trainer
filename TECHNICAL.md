@@ -96,11 +96,24 @@ dPrime = Z(hitRate) - Z(falseAlarmRate)
 
 ---
 
-### Module D — Spatial Orientation Microtasks
+### Module D — Spatial Orientation Tasks
 
-Rules:
-- Randomized scenes and iconography
-- No standardized aviation instruments
+#### Representation Modes
+
+- **Abstract Mode** (assessment-safe):
+  - Geometric shapes
+  - Arbitrary landmarks
+  - Non-aviation symbology
+
+- **Aviation-Context Mode** (training-only):
+  - Attitude indicator metaphors
+  - Compass or heading cues
+  - Simplified, non-canonical layouts
+
+Aviation-context mode MUST:
+- Be excluded from baseline metrics
+- Be excluded from adaptive difficulty controllers
+- Produce metrics labeled as training-only
 
 Metrics:
 - Accuracy
@@ -147,7 +160,7 @@ recoveryTime = time to return to baselineError
 
 ## 5. Adaptive Difficulty Controller
 
-Per-module controller:
+Per-module controller (assessment-safe modules only):
 
 ```pseudo
 if successRate > upperBound:
@@ -212,13 +225,13 @@ Required plots:
 - Dual-task cost bars
 - Recovery curves
 
-Use downsampled data for rendering.
+Training-only modules MUST be visually distinguished in analytics.
 
 ---
 
 ## 8. Validation Targets
 
-- Same-day retest reliability for RMSE and d′
+- Same-day retest reliability for RMSE and d′ (abstract modules)
 - Observable reduction in dual-task cost over sessions
 - Faster recovery after interrupts with training
 
@@ -229,4 +242,5 @@ Use downsampled data for rendering.
 Do NOT:
 - Implement fixed sequences
 - Match any known exam flow
-- Add “exam mode” or “simulation mode”
+- Conflate training-context metrics with aptitude assessment
+- Add “exam mode” or “practice test” labels

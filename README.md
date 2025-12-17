@@ -6,19 +6,29 @@ A web-based application for training aviation-relevant cognitive and psychomotor
 
 This application trains transferable skills such as continuous motor control, divided attention, spatial reasoning, and interrupt handling. All tasks are randomized and adaptive to promote skill development rather than memorization.
 
+**Design Philosophy**: Train transferable capacity, not test-specific form. See `DESIGN_RATIONALE.md` for details on clean-room constraints and assessment vs. training modes.
+
 ## Project Structure
 
 ```
 tbas/
 ├── src/
 │   ├── components/         # React components
-│   │   ├── pages/         # Page components (Home, Hardware, Training, etc.)
+│   │   ├── pages/         # Page components (Home, Hardware, Training, Analytics)
 │   │   ├── AppRoutes.tsx  # Route definitions
 │   │   └── Navigation.tsx # Main navigation bar
 │   ├── modules/           # Training module implementations (A-G)
+│   │   ├── ModuleA.tsx   # 1D Pursuit Tracking
+│   │   ├── ModuleB.tsx   # 2D Pursuit Tracking
+│   │   ├── ModuleC.tsx   # Auditory Selective Attention
+│   │   └── ModuleD.tsx   # Mental Rotation (in progress)
 │   ├── stores/            # State management
 │   ├── types/             # TypeScript type definitions
 │   ├── utils/             # Utility functions
+│   │   ├── targetGeneration.ts  # Target movement algorithms
+│   │   ├── trackingMetrics.ts   # Tracking performance calculations
+│   │   ├── spatialTasks.ts      # Mental rotation task generation
+│   │   └── spatialMetrics.ts    # Spatial performance calculations
 │   ├── lib/
 │   │   └── db.ts         # IndexedDB wrapper for local storage
 │   ├── App.tsx           # Main application component
@@ -27,6 +37,7 @@ tbas/
 ├── public/               # Static assets
 ├── PROJECT.md            # Project requirements and constraints
 ├── TECHNICAL.md          # Technical specifications
+├── DESIGN_RATIONALE.md   # Design decisions and clean-room boundaries
 └── package.json          # Dependencies and scripts
 ```
 
@@ -66,47 +77,157 @@ npm run preview
 - **React Router** - Client-side routing
 - **Tailwind CSS** - Styling
 - **IndexedDB (via idb)** - Local data persistence
+- **Web Audio API** - Auditory stimulus generation
+- **Pointer Lock API** - Unlimited 2D mouse tracking
 
 ## Training Modules
 
-- **Module A** — 1D Pursuit Tracking
-- **Module B** — 2D Pursuit Tracking
-- **Module C** — Auditory Selective Attention
-- **Module D** — Spatial Orientation Microtasks
+### Implemented
+
+- **Module A** — 1D Pursuit Tracking ✅
+  - Momentum and curvilinear target generation
+  - Arrow key or WASD control
+  - MAE, RMSE, time on target metrics
+  - Adaptive difficulty based on tracking performance
+
+- **Module B** — 2D Pursuit Tracking ✅
+  - Full 2D target movement (momentum + curvilinear algorithms)
+  - Mouse + keyboard control (WASD)
+  - Pointer Lock API for unlimited mouse movement
+  - 2D metrics: MAE, RMSE, time on target, reacquisition time
+
+- **Module C** — Auditory Selective Attention ✅
+  - Go/No-Go task with three tone frequencies (440Hz, 587Hz, 880Hz)
+  - Jittered inter-stimulus intervals
+  - Signal detection metrics: d-prime, hit rate, false alarm rate
+  - Reaction time analysis
+  - Fixed React closure bug in keyboard handler
+
+- **Module D** — Mental Rotation ⚠️ (In Progress)
+  - 2D shape mental rotation tasks
+  - Pre-defined asymmetric shapes (F, L, arrow, P, 7)
+  - Match detection with rotation and mirror distractors
+  - Accuracy, reaction time, speed-accuracy tradeoff metrics
+  - **Known Issues**: Distractor generation needs refinement to ensure unique options
+
+### Planned
+
 - **Module E** — Dual-Task Motor Control
 - **Module F** — Triple-Task (Motor + Auditory)
 - **Module G** — Interrupt Handling Under Load
 
-## Features
+## Implementation Status
 
-### Completed
-- ✅ Project scaffolding with React + TypeScript
+### Completed Features
+- ✅ Project scaffolding with React + TypeScript + Vite
 - ✅ Navigation and routing structure
 - ✅ TypeScript type definitions for all data schemas
-- ✅ IndexedDB wrapper for local storage
+- ✅ IndexedDB wrapper for local storage (sessions, trials, profiles)
 - ✅ UI layout with Tailwind CSS
+- ✅ User profile and hardware profile management
+- ✅ Session and module run tracking
+- ✅ Module A: 1D pursuit tracking (arrow keys, momentum/curvilinear targets)
+- ✅ Module B: 2D pursuit tracking (mouse + WASD, Pointer Lock API)
+- ✅ Module C: Auditory selective attention (Web Audio API, Go/No-Go task)
+- ✅ Adaptive difficulty system (targets 70-85% success band)
+- ⚠️ Module D: Mental rotation (basic implementation, needs debugging)
 
-### Next Steps (Recommended Build Order)
-1. **Input Detection & Calibration** - Gamepad API integration, axis mapping, deadzone configuration
-2. **Module A Implementation** - 1D pursuit tracking with metrics
-3. **Module B Implementation** - 2D pursuit tracking
-4. **Metrics & Analytics** - Visualization of performance data
-5. **Remaining Modules** - C, E, G, F in sequence
+### In Progress
+- ⚠️ Module D distractor generation refinement
+- 📋 Analytics page with performance visualization
+
+### Next Steps
+1. Fix Module D distractor generation to guarantee unique options
+2. Implement Analytics page with charts and trend analysis
+3. Build Module E (Dual-Task Motor Control)
+4. Build Module F (Triple-Task)
+5. Build Module G (Interrupt Handling)
+6. Add data export (JSON/CSV)
+
+## Input Systems
+
+### Keyboard
+- **Arrow keys** or **WASD** for directional control
+- **Space bar** for response triggers (Module C)
+- Configurable sensitivity
+
+### Mouse
+- **Pointer Lock API** for unlimited 2D tracking (Module B)
+- Relative movement capture
+- Configurable sensitivity
+
+### Gamepad (Future)
+- Gamepad API integration planned
+- Axis mapping and deadzone configuration
+- Support for joystick, throttle, rudder pedals
+
+## Metrics & Adaptive Difficulty
+
+### Tracking Metrics (Modules A & B)
+- **MAE** (Mean Absolute Error) - Average distance from target
+- **RMSE** (Root Mean Square Error) - Emphasizes larger errors
+- **Time on Target** - Percentage within tolerance threshold
+- **Reacquisition Time** - Time to return to target after loss
+
+### Attention Metrics (Module C)
+- **d-prime** (d') - Sensitivity index from signal detection theory
+- **Hit Rate** - Proportion of correct responses to target stimuli
+- **False Alarm Rate** - Proportion of incorrect responses to non-target stimuli
+- **Reaction Time** - Mean and distribution of response latencies
+
+### Spatial Metrics (Module D)
+- **Accuracy** - Percentage of correct answers
+- **Reaction Time** - Mean time per task
+- **Speed-Accuracy Tradeoff** - Combined performance metric
+
+### Adaptive System
+- Targets 70-85% success rate across all modules
+- Adjusts difficulty incrementally (+/- 0.05 per trial)
+- Module-specific difficulty scaling:
+  - Tracking: Target speed and complexity
+  - Attention: Tone similarity and ISI jitter
+  - Spatial: Rotation granularity (90° vs 45° steps) and mirror distractors
 
 ## Data Privacy
 
 - All data stored locally in browser (IndexedDB)
 - No analytics, telemetry, or tracking
 - No account or login required
-- Full data export to JSON/CSV
+- No network requests (fully offline capable)
+- Full data export to JSON/CSV (planned)
+
+## Design Constraints
+
+This project follows clean-room design principles:
+
+### Explicitly Avoided
+- Fixed task ordering that mirrors selection tests
+- Canonical timing envelopes
+- "Practice test" or "exam simulation" modes
+- Proprietary task structures
+
+### Explicitly Allowed
+- Training the same latent abilities (motor control, attention, spatial reasoning)
+- Aviation-relevant metaphors (in training-only modes)
+- Standard aviation instruments (with clear labeling as training aids)
+
+See `DESIGN_RATIONALE.md` for full rationale.
 
 ## Development Notes
 
-- Uses `requestAnimationFrame` for high-frequency task loops
-- Gamepad API for hardware input (joystick, throttle, rudder)
-- Web Audio API for auditory stimuli
-- Adaptive difficulty targeting 70-85% success rate
-- All events timestamped with `performance.now()`
+- Uses `requestAnimationFrame` for high-frequency task loops (60+ fps)
+- `performance.now()` for high-precision timestamps
+- Web Audio API for pure tone generation (Module C)
+- Pointer Lock API for unlimited mouse tracking (Module B)
+- All stimuli randomized to prevent memorization
+- Adaptive difficulty maintains engagement without frustration
+
+## Known Issues
+
+1. **Module D**: Mental rotation distractor generation can produce duplicate-looking options when shapes have symmetries
+2. **Analytics Page**: Not yet implemented
+3. **Data Export**: JSON/CSV export not yet implemented
+4. **Gamepad Support**: Planned but not implemented
 
 ## License
 
