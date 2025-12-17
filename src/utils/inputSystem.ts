@@ -17,10 +17,16 @@ export class InputSystem {
   private mouseY: number
   private canvasBounds: DOMRect | null
   private animationFrameId: number | null
+  private canvas: HTMLCanvasElement | null
+  private usePointerLock: boolean
+  private mouseSensitivity: number
 
-  // Keyboard configuration for 1D vertical control
-  private readonly upKey = 'ArrowUp'
-  private readonly downKey = 'ArrowDown'
+  // Keyboard configuration for 2D control
+  // Support both arrow keys and WASD
+  private readonly upKeys = ['ArrowUp', 'w', 'W']
+  private readonly downKeys = ['ArrowDown', 's', 'S']
+  private readonly leftKeys = ['ArrowLeft', 'a', 'A']
+  private readonly rightKeys = ['ArrowRight', 'd', 'D']
   private readonly keyboardSpeed = 2.0 // Units per second
 
   constructor() {
@@ -35,12 +41,19 @@ export class InputSystem {
     this.mouseY = 0
     this.canvasBounds = null
     this.animationFrameId = null
+    this.canvas = null
+    this.usePointerLock = false
+    this.mouseSensitivity = 0.003 // Adjust for relative mouse movement
   }
 
   /**
    * Initialize input listeners for a canvas element
+   * @param canvas - The canvas element to attach listeners to
+   * @param usePointerLock - Whether to use pointer lock for relative mouse movement (for 2D modules)
    */
-  init(canvas: HTMLCanvasElement): void {
+  init(canvas: HTMLCanvasElement, usePointerLock: boolean = false): void {
+    this.canvas = canvas
+    this.usePointerLock = usePointerLock
     this.canvasBounds = canvas.getBoundingClientRect()
 
     // Keyboard listeners
@@ -52,6 +65,12 @@ export class InputSystem {
     canvas.addEventListener('mousedown', this.handleMouseDown)
     canvas.addEventListener('mouseup', this.handleMouseUp)
 
+    // Pointer lock listeners (for 2D modules)
+    if (usePointerLock) {
+      canvas.addEventListener('click', this.requestPointerLock)
+      document.addEventListener('pointerlockchange', this.handlePointerLockChange)
+    }
+
     // Start update loop
     this.startUpdateLoop()
   }
@@ -62,6 +81,16 @@ export class InputSystem {
   destroy(): void {
     window.removeEventListener('keydown', this.handleKeyDown)
     window.removeEventListener('keyup', this.handleKeyUp)
+
+    if (this.canvas) {
+      this.canvas.removeEventListener('click', this.requestPointerLock)
+    }
+    document.removeEventListener('pointerlockchange', this.handlePointerLockChange)
+
+    // Exit pointer lock if active
+    if (document.pointerLockElement === this.canvas) {
+      document.exitPointerLock()
+    }
 
     if (this.animationFrameId !== null) {
       cancelAnimationFrame(this.animationFrameId)
@@ -102,18 +131,48 @@ export class InputSystem {
   }
 
   private handleMouseMove = (e: MouseEvent): void => {
-    if (!this.canvasBounds) return
+    if (this.usePointerLock && document.pointerLockElement === this.canvas) {
+      // Pointer lock mode: use relative movement
+      const dx = e.movementX * this.mouseSensitivity
+      const dy = e.movementY * this.mouseSensitivity
 
-    this.mouseX = e.clientX - this.canvasBounds.left
-    this.mouseY = e.clientY - this.canvasBounds.top
+      this.state.x += dx
+      this.state.y += dy
 
-    // Convert to normalized coordinates (-1 to 1)
-    this.state.x = (this.mouseX / this.canvasBounds.width) * 2 - 1
-    this.state.y = (this.mouseY / this.canvasBounds.height) * 2 - 1
+      // Clamp to bounds
+      this.state.x = Math.max(-1, Math.min(1, this.state.x))
+      this.state.y = Math.max(-1, Math.min(1, this.state.y))
+    } else {
+      // Absolute positioning mode
+      if (!this.canvasBounds) return
 
-    // Clamp to bounds
-    this.state.x = Math.max(-1, Math.min(1, this.state.x))
-    this.state.y = Math.max(-1, Math.min(1, this.state.y))
+      this.mouseX = e.clientX - this.canvasBounds.left
+      this.mouseY = e.clientY - this.canvasBounds.top
+
+      // Convert to normalized coordinates (-1 to 1)
+      this.state.x = (this.mouseX / this.canvasBounds.width) * 2 - 1
+      this.state.y = (this.mouseY / this.canvasBounds.height) * 2 - 1
+
+      // Clamp to bounds
+      this.state.x = Math.max(-1, Math.min(1, this.state.x))
+      this.state.y = Math.max(-1, Math.min(1, this.state.y))
+    }
+  }
+
+  private requestPointerLock = (): void => {
+    if (this.canvas) {
+      this.canvas.requestPointerLock()
+    }
+  }
+
+  private handlePointerLockChange = (): void => {
+    if (document.pointerLockElement === this.canvas) {
+      // Pointer lock activated
+      console.log('Pointer lock activated')
+    } else {
+      // Pointer lock released (e.g., user pressed ESC)
+      console.log('Pointer lock released')
+    }
   }
 
   private handleMouseDown = (e: MouseEvent): void => {
@@ -131,15 +190,25 @@ export class InputSystem {
     const dt = (now - this.lastUpdateTime) / 1000 // Convert to seconds
     this.lastUpdateTime = now
 
-    // Handle keyboard input for position (accumulative)
-    if (this.keysPressed.has(this.upKey)) {
+    // Handle keyboard input for position (accumulative, 2D)
+    // Vertical movement
+    if (this.upKeys.some((key) => this.keysPressed.has(key))) {
       this.state.y -= this.keyboardSpeed * dt
     }
-    if (this.keysPressed.has(this.downKey)) {
+    if (this.downKeys.some((key) => this.keysPressed.has(key))) {
       this.state.y += this.keyboardSpeed * dt
     }
 
+    // Horizontal movement
+    if (this.leftKeys.some((key) => this.keysPressed.has(key))) {
+      this.state.x -= this.keyboardSpeed * dt
+    }
+    if (this.rightKeys.some((key) => this.keysPressed.has(key))) {
+      this.state.x += this.keyboardSpeed * dt
+    }
+
     // Clamp keyboard input
+    this.state.x = Math.max(-1, Math.min(1, this.state.x))
     this.state.y = Math.max(-1, Math.min(1, this.state.y))
 
     // TODO: Add gamepad polling here
