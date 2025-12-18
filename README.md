@@ -132,16 +132,17 @@ npm run preview
 - ✅ Module C: Auditory selective attention (Web Audio API, Go/No-Go task)
 - ✅ Module D: Mental rotation (Tetris pieces, forced rotation, accurate timing)
 - ✅ Adaptive difficulty system (targets 70-85% success band)
-
-### In Progress
-- 📋 Analytics page with performance visualization
+- ✅ Analytics page with performance visualization:
+  - Overview statistics (sessions, trials, modules trained)
+  - Module-specific performance cards with recent metrics
+  - Performance over time charts (custom SVG-based)
+  - Recent sessions list with completion details
 
 ### Next Steps
-1. Implement Analytics page with charts and trend analysis
-2. Build Module E (Dual-Task Motor Control)
-3. Build Module F (Triple-Task)
-4. Build Module G (Interrupt Handling)
-6. Add data export (JSON/CSV)
+1. Build Module E (Dual-Task Motor Control)
+2. Build Module F (Triple-Task)
+3. Build Module G (Interrupt Handling)
+4. Add data export (JSON/CSV)
 
 ## Input Systems
 
@@ -223,9 +224,8 @@ See `DESIGN_RATIONALE.md` for full rationale.
 
 ## Known Issues
 
-1. **Analytics Page**: Not yet implemented
-2. **Data Export**: JSON/CSV export not yet implemented
-3. **Gamepad Support**: Planned but not implemented
+1. **Data Export**: JSON/CSV export not yet implemented
+2. **Gamepad Support**: Planned but not implemented
 
 ## License
 

@@ -1,7 +1,7 @@
 # Development Progress
 
 **Last Updated:** 2025-12-18
-**Status:** Modules A, B, C, D complete and tested.
+**Status:** Modules A, B, C, D complete. Analytics page complete.
 
 ---
 
@@ -86,7 +86,8 @@
 - ✅ Home page with project overview
 - ✅ Navigation between all main sections
 - ✅ Training page with module selection (A, B, C, D)
-- ✅ Placeholder pages for Hardware, Analytics, Export
+- ✅ Analytics page with performance visualization
+- ✅ Placeholder pages for Hardware, Export
 - ✅ Session status display with trial counts
 - ✅ All modules fully interactive with real-time feedback
 
@@ -97,6 +98,19 @@
   - **Module A/B**: Target speed and motion complexity
   - **Module C**: Tone similarity and ISI jitter (not yet implemented)
   - **Module D**: Rotation granularity (90° vs 45°) and mirror distractors
+
+### Analytics Page ✅
+- ✅ Overview statistics (total sessions, trials, modules trained)
+- ✅ Module performance cards with recent metrics
+- ✅ Performance over time charts for each module:
+  - **Tracking (A/B)**: RMSE and Time on Target progression
+  - **Attention (C)**: d-prime and Hit Rate progression
+  - **Spatial (D)**: Accuracy and Reaction Time progression
+  - **All modules**: Difficulty progression
+- ✅ Recent sessions list with module completion details
+- ✅ Custom SVG-based LineChart component (no external dependencies)
+- ✅ Data fetching from IndexedDB with proper relationship reconstruction
+- ✅ Module-specific metric visualization based on metric type
 
 ---
 
@@ -158,6 +172,24 @@
     - Fixed: Use useEffect + requestAnimationFrame to start timer AFTER task visible on screen
     - Now measures accurate user reaction time only
 
+### Analytics Page
+15. **Analytics page showing 0 for all stats** - Total trials and modules trained both showed 0
+    - Root cause: Sessions stored in IndexedDB didn't include nested moduleRuns and trials
+    - Fixed: Added getAllTrials() and getAllModuleRuns() functions, reconstructed relationships in memory
+    - Now fetches all data separately and joins using Maps
+
+16. **Time on Target showing >100% values** - Displayed 3187.1% and 6646.3% instead of 31.87% and 66.46%
+    - Root cause: timeOnTarget already stored as percentage (0-100) but display multiplied by 100 again
+    - Fixed: Removed `* 100` multiplication in both stat card and chart displays
+
+17. **Chart content extending past container** - Grid lines, data points, and lines extended beyond dark background
+    - Root cause: SVG had overflow-visible class and insufficient padding
+    - Fixed: Removed overflow-visible, increased padding (left: 60px, right: 80px, top: 20px, bottom: 40px)
+
+18. **Y-axis label overlapping tick values** - "Difficulty (%)" text overwrote numeric labels
+    - Root cause: Y-axis label positioned too close to tick values
+    - Fixed: Increased left padding and positioned label at x=16 instead of x=12
+
 ---
 
 ## 📊 Performance Tested
@@ -194,14 +226,7 @@
 ## 🎯 Next Steps
 
 ### High Priority
-1. **Analytics Page**
-   - Performance visualization over time
-   - Error vs time plots
-   - Reaction time histograms
-   - Progress tracking across sessions
-   - Trend analysis for adaptive difficulty
-
-2. **Module E: Dual-Task Motor Control**
+1. **Module E: Dual-Task Motor Control**
    - Combine Module A and Module B simultaneously
    - Track dual-task cost metrics
    - Separate performance tracking for each component
@@ -303,25 +328,19 @@
 
 ## 🚧 Known Limitations & Technical Debt
 
-1. **Module D distractor generation is buggy** - Can produce duplicate-looking options due to shape symmetries
+1. **No data export UI** - Backend functions exist but no user interface
 
-2. **No analytics visualization yet** - Analytics page is placeholder
+2. **Adaptive difficulty for Module C not implemented** - Difficulty parameter exists but doesn't affect tone similarity or ISI jitter
 
-3. **No data export UI** - Backend functions exist but no user interface
+3. **Hard-coded trial parameters** - Duration, number of stimuli, etc. should be configurable
 
-4. **Adaptive difficulty for Module C not implemented** - Difficulty parameter exists but doesn't affect tone similarity or ISI jitter
+4. **No baseline assessment** - PROJECT.md specifies optional baseline, not implemented
 
-5. **Hard-coded trial parameters** - Duration, number of stimuli, etc. should be configurable
+5. **Session management is simple** - No session naming, notes, or metadata
 
-6. **No baseline assessment** - PROJECT.md specifies optional baseline, not implemented
+6. **No gamepad support yet** - Architecture is ready but Gamepad API polling not implemented
 
-7. **Session management is simple** - No session naming, notes, or metadata
-
-8. **No gamepad support yet** - Architecture is ready but Gamepad API polling not implemented
-
-9. **Pointer Lock exit not handled gracefully** - User can exit pointer lock without app knowing
-
-10. **Module D removed relative direction variant** - Was deemed too trivial, but left some unused code
+7. **Pointer Lock exit not handled gracefully** - User can exit pointer lock without app knowing
 
 ---
 
@@ -421,8 +440,8 @@ This project is being built with Claude Code CLI. Best practices:
 
 **Current Session Context:**
 - Modules A, B, C, D fully complete and tested
-- Module D completely debugged (distractor generation, rotation constraints, reaction time)
-- Next: Build Analytics page or Module E (Dual-Task Motor Control)
+- Analytics page fully implemented with charts and performance visualization
+- Next: Build Module E (Dual-Task Motor Control)
 
 ---
 
@@ -452,6 +471,7 @@ This project is being built with Claude Code CLI. Best practices:
 - **Modules Complete**: 4 (A, B, C, D)
 - **Modules In Progress**: 0
 - **Modules Remaining**: 3 (E, F, G)
+- **Analytics Page**: ✅ Complete
 - **Known Bugs**: 0
 - **Build Status**: ✅ Passing
-- **Bundle Size**: ~231 KB (gzipped: ~69 KB)
+- **Bundle Size**: ~242 KB (gzipped: ~71 KB)

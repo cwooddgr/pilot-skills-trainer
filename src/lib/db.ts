@@ -222,6 +222,21 @@ export async function updateTrial(trial: Trial): Promise<Trial> {
   return trial
 }
 
+export async function getTrialsByModuleRun(moduleRunId: string): Promise<Trial[]> {
+  const db = await getDB()
+  return db.getAllFromIndex('trials', 'by-moduleRun', moduleRunId)
+}
+
+export async function getAllTrials(): Promise<Trial[]> {
+  const db = await getDB()
+  return db.getAll('trials')
+}
+
+export async function getAllModuleRuns(): Promise<ModuleRun[]> {
+  const db = await getDB()
+  return db.getAll('moduleRuns')
+}
+
 // Bulk export for data export functionality
 export async function exportAllData(): Promise<{
   userProfiles: UserProfile[]
