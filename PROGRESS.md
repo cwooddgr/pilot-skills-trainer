@@ -1,7 +1,7 @@
 # Development Progress
 
-**Last Updated:** 2025-12-17
-**Status:** Modules A, B, C complete and tested. Module D in progress.
+**Last Updated:** 2025-12-18
+**Status:** Modules A, B, C, D complete and tested.
 
 ---
 
@@ -72,14 +72,15 @@
   - Visual design flaw where colored circles revealed tone type
   - Final stimulus timing issue (response window)
 
-### Module D: Mental Rotation ⚠️ (In Progress)
+### Module D: Mental Rotation ✅
 - ✅ 2D shape rendering with SVG paths
-- ✅ Pre-defined asymmetric shapes (F, L, arrow, P, 7)
+- ✅ Three asymmetric Tetris pieces (J, F, Z)
 - ✅ Proper rotation and mirror transformations
 - ✅ Spatial metrics (accuracy, reaction time, speed-accuracy tradeoff)
-- ⚠️ **Known Issue**: Distractor generation can produce duplicate-looking options
-  - Shapes with symmetries cause mirrored versions to look identical
-  - Distractor pool logic needs refinement
+- ✅ Correct answer always requires mental rotation (90°, 180°, or 270° from reference)
+- ✅ Difficulty scaling: low (1 mirror) → high (3 mirrors)
+- ✅ Accurate reaction time measurement (timer starts after render using useEffect + requestAnimationFrame)
+- ✅ Fixed all distractor generation bugs (removed L/S pieces to avoid duplicate mirrors)
 
 ### UI/UX
 - ✅ Home page with project overview
@@ -140,6 +141,23 @@
 10. **Unused import warnings** - Various cleanup across modules
     - Fixed: Removed unused imports and functions
 
+11. **Duplicate correct answers** - Adding L and S pieces created mirror-image pairs
+    - Root cause: L is mirrored J, S is mirrored Z - treated as separate shapes caused duplicates
+    - Fixed: Removed L and S from shape array, let mirroring transformation create them
+
+12. **T-piece symmetry** - T-piece symmetric about X axis, mirrors looked identical
+    - Fixed: Replaced with asymmetric F-piece
+    - Final shape set: J, F, Z (all asymmetric about both axes)
+
+13. **Correct answer at 0° rotation** - Too easy, no mental rotation required
+    - Fixed: Correct answer rotated 90°, 180°, or 270° RELATIVE to reference
+    - Now always requires mental rotation
+
+14. **Reaction time 10x too large** - Measured ~3000ms when actual was <1000ms
+    - Root cause: Timer started before React rendered task, included 1000ms feedback delay
+    - Fixed: Use useEffect + requestAnimationFrame to start timer AFTER task visible on screen
+    - Now measures accurate user reaction time only
+
 ---
 
 ## 📊 Performance Tested
@@ -162,47 +180,43 @@
 - Reaction times: Reasonable distribution
 - No false visual cues remaining
 
-### Module D (Mental Rotation)
-- **Still needs work**: Multiple correct answers appearing
-- Shape rendering working correctly
+### Module D (Mental Rotation) ✅
+- All bugs fixed, fully functional
+- Tetris pieces (J, F, Z) render correctly with proper perimeters
 - Rotation/mirror transformations accurate
-- Issue is in distractor generation logic
+- Only one correct answer per task (guaranteed)
+- Reaction times accurate (<1 second for quick responses)
+- Difficulty scaling works correctly (mirrors increase challenge)
+- Mental rotation forced on every task (no 0° correct answers)
 
 ---
 
 ## 🎯 Next Steps
 
-### Immediate Priority
-1. **Fix Module D distractor generation**
-   - Current issue: Symmetric shapes produce identical-looking mirrored versions
-   - Need to ensure all 4 options are visually distinct
-   - Consider using only highly asymmetric shapes
-   - Improve distractor pool filtering logic
-
 ### High Priority
-2. **Analytics Page**
+1. **Analytics Page**
    - Performance visualization over time
    - Error vs time plots
    - Reaction time histograms
    - Progress tracking across sessions
    - Trend analysis for adaptive difficulty
 
-3. **Module E: Dual-Task Motor Control**
+2. **Module E: Dual-Task Motor Control**
    - Combine Module A and Module B simultaneously
    - Track dual-task cost metrics
    - Separate performance tracking for each component
 
 ### Medium Priority
-4. **Module F: Triple-Task**
+3. **Module F: Triple-Task**
    - Module E + Module C simultaneously
    - Full cognitive load scenario
    - Interrupt handling mechanics
 
-5. **Module G: Interrupt Handling Under Load**
+4. **Module G: Interrupt Handling Under Load**
    - Random interrupts during tracking tasks
    - Measure recovery time and accuracy degradation
 
-6. **Data Export UI**
+5. **Data Export UI**
    - JSON export for all session data
    - CSV export for metrics analysis
    - Per-session or bulk export options
@@ -377,12 +391,14 @@ All data stored locally in IndexedDB:
 - [x] Verify no visual cues reveal answers
 - [x] Test final stimulus response window
 
-### Module D ⚠️
-- [ ] Verify all 4 options are visually distinct (FAILING)
+### Module D ✅
+- [x] Verify all 4 options are visually distinct
 - [x] Test rotation transformations
 - [x] Test mirror transformations
 - [x] Verify metrics calculation
-- [ ] Test across multiple difficulty levels
+- [x] Test across multiple difficulty levels
+- [x] Verify reaction time accuracy
+- [x] Verify correct answer always requires mental rotation
 
 ---
 
@@ -404,10 +420,9 @@ This project is being built with Claude Code CLI. Best practices:
 - Use clear commit messages when code is working
 
 **Current Session Context:**
-- Modules A, B, C fully complete and tested
-- Module D has critical bug in distractor generation
-- Next: Fix Module D, then build Analytics page or Module E
-- User prefers to pause on Module D and resume later
+- Modules A, B, C, D fully complete and tested
+- Module D completely debugged (distractor generation, rotation constraints, reaction time)
+- Next: Build Analytics page or Module E (Dual-Task Motor Control)
 
 ---
 
@@ -425,14 +440,18 @@ This project is being built with Claude Code CLI. Best practices:
 
 6. **Document design decisions** - DESIGN_RATIONALE.md added to explicitly document clean-room constraints and prevent scope creep toward exam simulation.
 
+7. **Mirror-image shapes create subtle bugs** - Adding L-piece (mirrored J) and S-piece (mirrored Z) as separate shapes caused duplicate correct answers when algorithm selected one as reference and the other as distractor. Solution: Keep shape array minimal, use mirroring transformation to create variants.
+
+8. **Timing measurements require careful thought** - React state updates are asynchronous. Timer must start AFTER browser paints new content, not when state is set. Use `useEffect` + `requestAnimationFrame` to ensure timer starts after render.
+
 ---
 
 ## 📈 Project Statistics
 
 - **Total Modules Planned**: 7 (A-G)
-- **Modules Complete**: 3 (A, B, C)
-- **Modules In Progress**: 1 (D)
+- **Modules Complete**: 4 (A, B, C, D)
+- **Modules In Progress**: 0
 - **Modules Remaining**: 3 (E, F, G)
-- **Known Bugs**: 1 critical (Module D distractors)
+- **Known Bugs**: 0
 - **Build Status**: ✅ Passing
-- **Bundle Size**: ~230 KB (gzipped: ~69 KB)
+- **Bundle Size**: ~231 KB (gzipped: ~69 KB)

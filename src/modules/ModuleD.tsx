@@ -1,7 +1,8 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import {
   generateSpatialTask,
   transformShape,
+  TETRIS_SHAPES,
   type SpatialTask,
   type MentalRotationStimulus,
   type MentalRotationOption,
@@ -37,6 +38,16 @@ export function ModuleD({ moduleRunId, difficulty, onTrialComplete }: ModuleDPro
   const taskStartTime = useRef<number>(0)
   const responses = useRef<SpatialResponse[]>([])
 
+  // Set task timer AFTER the task is rendered and visible to the user
+  useEffect(() => {
+    if (trialState === 'running' && currentTask && selectedAnswer === null && !showFeedback) {
+      // Use requestAnimationFrame to ensure timer starts AFTER browser paints the new task
+      requestAnimationFrame(() => {
+        taskStartTime.current = performance.now()
+      })
+    }
+  }, [currentTask, currentTaskIndex, trialState, selectedAnswer, showFeedback])
+
   const startTrial = () => {
     // Reset state
     responses.current = []
@@ -49,9 +60,8 @@ export function ModuleD({ moduleRunId, difficulty, onTrialComplete }: ModuleDPro
     setCurrentTask(task)
     setSelectedAnswer(null)
     setShowFeedback(false)
-    taskStartTime.current = performance.now()
-
     setTrialState('running')
+    // Timer will be set by useEffect after task is rendered
   }
 
   const handleAnswerSelect = (answerIndex: number) => {
@@ -85,7 +95,7 @@ export function ModuleD({ moduleRunId, difficulty, onTrialComplete }: ModuleDPro
         setCurrentTask(task)
         setSelectedAnswer(null)
         setShowFeedback(false)
-        taskStartTime.current = performance.now()
+        // Timer will be set by useEffect after task is rendered
       }
     }, 1000)
   }
@@ -125,7 +135,7 @@ export function ModuleD({ moduleRunId, difficulty, onTrialComplete }: ModuleDPro
       <div className="bg-slate-800 rounded-lg p-6">
         <h2 className="text-2xl font-bold mb-2">Module D: Mental Rotation</h2>
         <p className="text-slate-300 mb-4">
-          Find the shape that matches the reference (same shape, same orientation, not mirrored).
+          Find the shape that matches the reference (rotated 90°, 180°, or 270° - not mirrored).
         </p>
 
         <div className="flex items-center gap-4 mb-4">
@@ -249,10 +259,10 @@ function MentalRotationDisplay({
   return (
     <div>
       <h3 className="text-xl font-semibold mb-4 text-center text-slate-200">
-        Which shape matches the reference exactly?
+        Which shape is the same as the reference?
       </h3>
       <p className="text-sm text-slate-400 text-center mb-6">
-        (Find the same shape at the same orientation - not mirrored)
+        (Any rotation is OK - but not mirrored)
       </p>
 
       {/* Reference Shape */}
@@ -270,7 +280,7 @@ function MentalRotationDisplay({
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {options.map((option, index) => {
           const optionPoints = transformShape(
-            stimulus.shapePoints,
+            TETRIS_SHAPES[option.shapeIndex],
             option.rotation,
             option.isMirrored
           )

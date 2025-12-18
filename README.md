@@ -103,12 +103,13 @@ npm run preview
   - Reaction time analysis
   - Fixed React closure bug in keyboard handler
 
-- **Module D** — Mental Rotation ⚠️ (In Progress)
-  - 2D shape mental rotation tasks
-  - Pre-defined asymmetric shapes (F, L, arrow, P, 7)
-  - Match detection with rotation and mirror distractors
-  - Accuracy, reaction time, speed-accuracy tradeoff metrics
-  - **Known Issues**: Distractor generation needs refinement to ensure unique options
+- **Module D** — Mental Rotation ✅
+  - 2D shape mental rotation tasks with Tetris pieces (J, F, Z)
+  - Asymmetric shapes guarantee visually distinct rotations and mirrors
+  - Correct answer always requires mental rotation (90°, 180°, or 270° from reference)
+  - Difficulty scaling: low (1 mirror) → high (3 mirrors)
+  - Accurate reaction time measurement (timer starts after render)
+  - Metrics: accuracy, reaction time, speed-accuracy tradeoff
 
 ### Planned
 
@@ -129,19 +130,17 @@ npm run preview
 - ✅ Module A: 1D pursuit tracking (arrow keys, momentum/curvilinear targets)
 - ✅ Module B: 2D pursuit tracking (mouse + WASD, Pointer Lock API)
 - ✅ Module C: Auditory selective attention (Web Audio API, Go/No-Go task)
+- ✅ Module D: Mental rotation (Tetris pieces, forced rotation, accurate timing)
 - ✅ Adaptive difficulty system (targets 70-85% success band)
-- ⚠️ Module D: Mental rotation (basic implementation, needs debugging)
 
 ### In Progress
-- ⚠️ Module D distractor generation refinement
 - 📋 Analytics page with performance visualization
 
 ### Next Steps
-1. Fix Module D distractor generation to guarantee unique options
-2. Implement Analytics page with charts and trend analysis
-3. Build Module E (Dual-Task Motor Control)
-4. Build Module F (Triple-Task)
-5. Build Module G (Interrupt Handling)
+1. Implement Analytics page with charts and trend analysis
+2. Build Module E (Dual-Task Motor Control)
+3. Build Module F (Triple-Task)
+4. Build Module G (Interrupt Handling)
 6. Add data export (JSON/CSV)
 
 ## Input Systems
@@ -224,10 +223,9 @@ See `DESIGN_RATIONALE.md` for full rationale.
 
 ## Known Issues
 
-1. **Module D**: Mental rotation distractor generation can produce duplicate-looking options when shapes have symmetries
-2. **Analytics Page**: Not yet implemented
-3. **Data Export**: JSON/CSV export not yet implemented
-4. **Gamepad Support**: Planned but not implemented
+1. **Analytics Page**: Not yet implemented
+2. **Data Export**: JSON/CSV export not yet implemented
+3. **Gamepad Support**: Planned but not implemented
 
 ## License
 
