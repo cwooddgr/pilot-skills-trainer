@@ -290,16 +290,19 @@ export function ModuleA({ moduleRunId, difficulty, onTrialComplete }: ModuleAPro
     // Draw cursor at EXACT mouse position (pixel-perfect)
     const cursorY = mouseCanvasY.current
 
+    // Center position for target and cursor
+    const centerX = canvasWidth / 2
+
     // Draw target
     ctx.fillStyle = '#3b82f6' // blue-500
     ctx.beginPath()
-    ctx.arc(100, targetY, 12, 0, Math.PI * 2)
+    ctx.arc(centerX, targetY, 12, 0, Math.PI * 2)
     ctx.fill()
 
     // Draw cursor
     ctx.fillStyle = '#10b981' // green-500
     ctx.beginPath()
-    ctx.arc(100, cursorY, 10, 0, Math.PI * 2)
+    ctx.arc(centerX, cursorY, 10, 0, Math.PI * 2)
     ctx.fill()
 
     // Draw connecting line (error visualization)
@@ -309,8 +312,8 @@ export function ModuleA({ moduleRunId, difficulty, onTrialComplete }: ModuleAPro
     ctx.lineWidth = 2
     ctx.setLineDash([5, 5])
     ctx.beginPath()
-    ctx.moveTo(100, targetY)
-    ctx.lineTo(100, cursorY)
+    ctx.moveTo(centerX, targetY)
+    ctx.lineTo(centerX, cursorY)
     ctx.stroke()
     ctx.setLineDash([])
 

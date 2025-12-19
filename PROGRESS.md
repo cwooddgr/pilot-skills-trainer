@@ -1,7 +1,7 @@
 # Development Progress
 
 **Last Updated:** 2025-12-19
-**Status:** Modules A, B, C, D, E complete. Analytics page complete.
+**Status:** Modules A, B, C, D, E, F complete. Analytics page complete.
 
 ---
 
@@ -106,10 +106,48 @@
 - ✅ Real-time visual feedback with split rendering
 - ✅ Complete TypeScript type safety
 
+### Module F: Triple-Task (Motor + Auditory) ✅
+- ✅ Split canvas architecture (900x400 canvas):
+  - Left panel (450px): 1D horizontal tracking
+  - Right panel (450px): 2D tracking
+  - Auditory feedback area below canvas
+- ✅ Three independent input channels:
+  - A/D keys: 1D horizontal tracking
+  - Mouse position: 2D tracking
+  - Spacebar: Auditory Go/No-Go responses (gated by trial state)
+- ✅ Dual game loop architecture:
+  - Motor loop: requestAnimationFrame (60 FPS) for tracking tasks
+  - Auditory loop: setTimeout scheduled for stimulus presentation
+  - Both loops controlled by trialModeRef to avoid closure bugs
+- ✅ Baseline trial sequence:
+  - 1D baseline (30s) → auto-advance
+  - 2D baseline (30s, click-to-start) → auto-advance
+  - Audio baseline (60s, 5s countdown showing target tones) → idle
+- ✅ Triple-task trial:
+  - 5s countdown showing target tones
+  - Click-to-start ready state
+  - All three tasks run simultaneously for 60s
+- ✅ Interference metrics calculation:
+  - Tracking error spikes in ±500ms windows around auditory events
+  - Separate analysis for responses and stimuli
+  - Mean error spike magnitudes
+- ✅ Triple-task metrics:
+  - Dual-motor cost: motor degradation vs baselines
+  - Auditory cost: d-prime degradation vs baseline
+  - Motor interference cost: overall RMSE impact
+  - Full tracking metrics for both 1D and 2D
+  - Full attention metrics (d-prime, hit rate, false alarms)
+- ✅ UI refinements:
+  - Target tones displayed with yellow borders during preparation
+  - Neutral music note icon during stimulus (no type labels)
+  - Proper cursor positioning in right panel for ready state
+  - Canvas width optimized for page layout (900px)
+- ✅ Complete data persistence with merged event streams
+
 ### UI/UX
 - ✅ Home page with project overview
 - ✅ Navigation between all main sections
-- ✅ Training page with module selection (A, B, C, D, E)
+- ✅ Training page with module selection (A, B, C, D, E, F)
 - ✅ Analytics page with performance visualization
 - ✅ Placeholder pages for Hardware, Export
 - ✅ Session status display with trial counts
@@ -250,28 +288,24 @@
 ## 🎯 Next Steps
 
 ### High Priority
-1. **Module E: Dual-Task Motor Control**
-   - Combine Module A and Module B simultaneously
-   - Track dual-task cost metrics
-   - Separate performance tracking for each component
-
-### Medium Priority
-3. **Module F: Triple-Task**
-   - Module E + Module C simultaneously
-   - Full cognitive load scenario
-   - Interrupt handling mechanics
-
-4. **Module G: Interrupt Handling Under Load**
+1. **Module G: Interrupt Handling Under Load**
    - Random interrupts during tracking tasks
    - Measure recovery time and accuracy degradation
+   - Integration with Module E or F
 
-5. **Data Export UI**
+### Medium Priority
+2. **Data Export UI**
    - JSON export for all session data
    - CSV export for metrics analysis
    - Per-session or bulk export options
 
+3. **Analytics Page Enhancements**
+   - Add Module F visualization (interference metrics)
+   - Add Module E visualization (dual-task cost)
+   - Charts for triple-task metrics
+
 ### Lower Priority
-7. **Hardware Detection & Calibration**
+4. **Hardware Detection & Calibration**
    - Gamepad API integration
    - Device detection UI
    - Axis mapping interface
@@ -465,9 +499,10 @@ This project is being built with Claude Code CLI. Best practices:
 - Use clear commit messages when code is working
 
 **Current Session Context:**
-- Modules A, B, C, D fully complete and tested
+- Modules A, B, C, D, E, F fully complete and tested
 - Analytics page fully implemented with charts and performance visualization
-- Next: Build Module E (Dual-Task Motor Control)
+- Added MIT License to project
+- Next: Build Module G (Interrupt Handling Under Load)
 
 ---
 
@@ -494,10 +529,10 @@ This project is being built with Claude Code CLI. Best practices:
 ## 📈 Project Statistics
 
 - **Total Modules Planned**: 7 (A-G)
-- **Modules Complete**: 4 (A, B, C, D)
+- **Modules Complete**: 6 (A, B, C, D, E, F)
 - **Modules In Progress**: 0
-- **Modules Remaining**: 3 (E, F, G)
+- **Modules Remaining**: 1 (G)
 - **Analytics Page**: ✅ Complete
 - **Known Bugs**: 0
 - **Build Status**: ✅ Passing
-- **Bundle Size**: ~242 KB (gzipped: ~71 KB)
+- **Bundle Size**: ~278 KB (gzipped: ~79 KB)

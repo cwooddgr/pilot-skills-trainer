@@ -87,11 +87,17 @@ export interface TrialMetrics {
   // Tracking metrics (Modules A, B, E)
   tracking?: TrackingMetrics
 
+  // 2D Tracking metrics (Modules B, E, F)
+  tracking2D?: TrackingMetrics
+
   // Attention metrics (Module C)
   attention?: AttentionMetrics
 
   // Multitasking metrics (Modules E, F)
   multitask?: MultitaskMetrics
+
+  // Triple-task metrics (Module F)
+  tripleTask?: TripleTaskMetrics
 
   // Interrupt metrics (Module G)
   interrupt?: InterruptMetrics
@@ -131,6 +137,25 @@ export interface InterferenceEvent {
   timestamp: number
   errorSpike: number
   interruptType: string
+}
+
+export interface InterferenceMetrics {
+  errorSpikesAroundResponses: number[] // RMSE in ±500ms per response
+  meanErrorSpikeResponse: number
+  errorSpikesAroundStimuli: number[] // RMSE in ±500ms per stimulus
+  meanErrorSpikeStimulus: number
+}
+
+export interface TripleTaskMetrics {
+  tracking1D: TrackingMetrics
+  tracking2D: TrackingMetrics
+  attention: AttentionMetrics
+
+  dualMotorCost: number // (tripleRMSE - dualBaselineRMSE) / dualBaselineRMSE
+  auditoryCost: number // (tripleDPrime - baselineDPrime) / baselineDPrime
+  motorInterferenceCost: number // Overall RMSE degradation from motor baselines
+
+  interference: InterferenceMetrics
 }
 
 export interface InterruptMetrics {
@@ -178,3 +203,10 @@ export interface DifficultyState {
   successRate: number
   trialHistory: boolean[] // Recent success/failure
 }
+
+// Re-export utility types for convenience
+
+export type { TrackingSample } from '@/utils/metricsCalculation'
+export type { TrackingSample2D } from '@/utils/metricsCalculation2D'
+export type { AttentionResponse } from '@/utils/attentionMetrics'
+export type { StimulusType, StimulusEvent } from '@/utils/audioStimulus'

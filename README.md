@@ -119,9 +119,17 @@ npm run preview
   - Calculates dual-task cost metric: performance degradation when multitasking
   - Metrics: dual-task cost, baseline RMSE, dual RMSE
 
+- **Module F** — Triple-Task (Motor + Auditory) ✅
+  - Combines Module E (dual motor) with Module C (auditory Go/No-Go)
+  - Baseline trials: 1D alone (30s), 2D alone (30s), Audio alone (60s)
+  - Triple-task trial runs all three tasks simultaneously (60s)
+  - Independent input channels: A/D keys (1D), mouse (2D), spacebar (auditory)
+  - Dual game loop architecture: motor (requestAnimationFrame) + auditory (setTimeout)
+  - Interference metrics: tracking error spikes in ±500ms windows around auditory events
+  - Metrics: tracking (1D + 2D), attention (d-prime), dual-motor cost, auditory cost, interference
+
 ### Planned
 
-- **Module F** — Triple-Task (Motor + Auditory)
 - **Module G** — Interrupt Handling Under Load
 
 ## Implementation Status
@@ -139,6 +147,7 @@ npm run preview
 - ✅ Module C: Auditory selective attention (Web Audio API, Go/No-Go task)
 - ✅ Module D: Mental rotation (Tetris pieces, forced rotation, accurate timing)
 - ✅ Module E: Dual-task motor control (split canvas, baseline + dual-task trials, multitasking metrics)
+- ✅ Module F: Triple-task motor + auditory (dual game loop, interference metrics, cognitive load measurement)
 - ✅ Adaptive difficulty system (targets 70-85% success band)
 - ✅ Analytics page with performance visualization:
   - Overview statistics (sessions, trials, modules trained)
@@ -147,20 +156,21 @@ npm run preview
   - Recent sessions list with completion details
 
 ### Next Steps
-1. Build Module F (Triple-Task Motor + Auditory)
-2. Build Module G (Interrupt Handling Under Load)
-3. Add data export (JSON/CSV)
-4. Add gamepad/joystick support
+1. Build Module G (Interrupt Handling Under Load)
+2. Add data export (JSON/CSV)
+3. Add gamepad/joystick support
 
 ## Input Systems
 
 ### Keyboard
 - **Arrow keys** or **WASD** for directional control
-- **Space bar** for response triggers (Module C)
+- **A/D keys** for 1D horizontal control (Modules E, F)
+- **Space bar** for response triggers (Modules C, F)
 - Configurable sensitivity
 
 ### Mouse
 - **Pointer Lock API** for unlimited 2D tracking (Module B)
+- **Direct pixel positioning** for 2D control (Modules E, F)
 - Relative movement capture
 - Configurable sensitivity
 
@@ -192,6 +202,15 @@ npm run preview
 - **Dual-Task Cost** - Performance degradation when multitasking: `(dualRMSE - baselineRMSE) / baselineRMSE`
 - **Baseline RMSE** - Average tracking error across both tasks when performed individually
 - **Dual RMSE** - Average tracking error across both tasks when performed simultaneously
+
+### Triple-Task Metrics (Module F)
+- **Dual-Motor Cost** - Motor performance degradation during triple-task vs baselines
+- **Auditory Cost** - Auditory d-prime degradation during triple-task vs baseline
+- **Motor Interference Cost** - Overall RMSE degradation from motor baselines
+- **Interference Metrics** - Tracking error spikes in ±500ms windows around auditory events
+  - Error spikes around responses (when user pressed spacebar)
+  - Error spikes around stimuli (all auditory tones)
+  - Mean error spike magnitudes
 
 ### Adaptive System
 - Targets 70-85% success rate across all modules
@@ -242,4 +261,4 @@ See `DESIGN_RATIONALE.md` for full rationale.
 
 ## License
 
-See project documentation for details.
+MIT License - see [LICENSE](LICENSE) file for details.
