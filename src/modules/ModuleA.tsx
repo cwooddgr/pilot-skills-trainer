@@ -15,11 +15,12 @@ interface ModuleAProps {
   onTrialComplete?: (trial: Trial) => void
 }
 
-type TrialState = 'idle' | 'running' | 'completed'
+type TrialState = 'idle' | 'ready' | 'running' | 'completed'
 
 export function ModuleA({ moduleRunId, difficulty, onTrialComplete }: ModuleAProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [trialState, setTrialState] = useState<TrialState>('idle')
+  const trialStateRef = useRef<TrialState>('idle')
   const [currentMetrics, setCurrentMetrics] = useState<TrackingMetrics | null>(null)
   const [trialDuration] = useState(30000) // 30 seconds per trial
 
@@ -31,6 +32,9 @@ export function ModuleA({ moduleRunId, difficulty, onTrialComplete }: ModuleAPro
   const trialStartTime = useRef<number>(0)
   const cursorPosition = useRef<number>(0)
 
+  // Raw mouse position in canvas pixels (for pixel-perfect tracking)
+  const mouseCanvasY = useRef<number>(0)
+
   // Canvas dimensions
   const canvasWidth = 800
   const canvasHeight = 200
@@ -38,9 +42,45 @@ export function ModuleA({ moduleRunId, difficulty, onTrialComplete }: ModuleAPro
   useEffect(() => {
     if (!canvasRef.current) return
 
-    // Initialize input system
+    // Initialize input system (no pointer lock for 1D)
     inputSystem.current = new InputSystem()
-    inputSystem.current.init(canvasRef.current)
+    inputSystem.current.init(canvasRef.current, false)
+
+    // Handle mouse movement for direct position tracking
+    const handleMouseMove = (e: MouseEvent) => {
+      const canvas = canvasRef.current
+      if (!canvas) return
+
+      const rect = canvas.getBoundingClientRect()
+      mouseCanvasY.current = e.clientY - rect.top
+    }
+
+    // Handle canvas click for trial initialization
+    const handleCanvasClick = (e: MouseEvent) => {
+      const state = trialStateRef.current
+      if (state !== 'ready') return
+
+      const canvas = canvasRef.current
+      if (!canvas) return
+
+      // Get click position relative to canvas
+      const rect = canvas.getBoundingClientRect()
+      const clickY = e.clientY - rect.top
+
+      // Cursor is in center of canvas vertically
+      const cursorCanvasY = canvasHeight / 2
+
+      // Check if click is near cursor (within 50px)
+      const distance = Math.abs(clickY - cursorCanvasY)
+
+      if (distance <= 50) {
+        // Click on cursor! Begin trial
+        beginTrialAfterClick()
+      }
+    }
+
+    canvasRef.current.addEventListener('mousemove', handleMouseMove)
+    canvasRef.current.addEventListener('click', handleCanvasClick)
 
     return () => {
       if (inputSystem.current) {
@@ -49,8 +89,20 @@ export function ModuleA({ moduleRunId, difficulty, onTrialComplete }: ModuleAPro
       if (animationFrameId.current !== null) {
         cancelAnimationFrame(animationFrameId.current)
       }
+      canvasRef.current?.removeEventListener('mousemove', handleMouseMove)
+      canvasRef.current?.removeEventListener('click', handleCanvasClick)
     }
   }, [])
+
+  // Sync trialState with ref to avoid closure issues
+  useEffect(() => {
+    trialStateRef.current = trialState
+
+    // Start ready state animation
+    if (trialState === 'ready') {
+      renderReadyState()
+    }
+  }, [trialState])
 
   const startTrial = () => {
     if (!canvasRef.current) return
@@ -73,12 +125,16 @@ export function ModuleA({ moduleRunId, difficulty, onTrialComplete }: ModuleAPro
       difficulty: difficulty,
     })
 
-    // Start trial
-    trialStartTime.current = performance.now()
-    setTrialState('running')
     setCurrentMetrics(null)
 
-    // Start game loop
+    // Show ready state first (click to start)
+    setTrialState('ready')
+  }
+
+  // Begin trial after click
+  const beginTrialAfterClick = () => {
+    trialStartTime.current = performance.now()
+    setTrialState('running')
     gameLoop()
   }
 
@@ -131,20 +187,19 @@ export function ModuleA({ moduleRunId, difficulty, onTrialComplete }: ModuleAPro
     const dt = 1 / 60 // Assume 60 FPS
     const targetPos = targetGenerator.current?.update(dt) || 0
 
-    // Get input
-    const inputState = inputSystem.current?.getState() || { x: 0, y: 0, buttons: new Map() }
+    // Update cursor using direct mouse position tracking (pixel-perfect)
+    // Convert mouse canvas pixel position to normalized coordinates
+    const normalizedY = (mouseCanvasY.current / canvasHeight) * 2 - 1
 
-    // Update cursor (in 1D, we use y axis for vertical movement)
-    // For keyboard: direct position control
-    // For mouse: position is already normalized -1 to 1
-    cursorPosition.current = inputState.y
+    // Clamp to bounds
+    cursorPosition.current = Math.max(-1, Math.min(1, normalizedY))
 
     // Record sample
     samples.current.push({
       timestamp: elapsed,
       targetPosition: targetPos,
       cursorPosition: cursorPosition.current,
-      inputValue: inputState.y,
+      inputValue: cursorPosition.current,
     })
 
     // Render
@@ -154,7 +209,63 @@ export function ModuleA({ moduleRunId, difficulty, onTrialComplete }: ModuleAPro
     animationFrameId.current = requestAnimationFrame(gameLoop)
   }
 
-  const render = (targetPos: number, cursorPos: number) => {
+  // Render ready state (waiting for click)
+  const renderReadyState = () => {
+    const canvas = canvasRef.current
+    const ctx = canvas?.getContext('2d')
+    if (!ctx || !canvas) return
+
+    const state = trialStateRef.current
+
+    // Stop animation if no longer in ready state
+    if (state !== 'ready') {
+      return
+    }
+
+    // Clear canvas
+    ctx.fillStyle = '#0f172a' // slate-900
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight)
+
+    // Draw center reference line (vertical)
+    ctx.strokeStyle = '#334155' // slate-700
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.moveTo(canvasWidth / 2, 0)
+    ctx.lineTo(canvasWidth / 2, canvasHeight)
+    ctx.stroke()
+
+    // Draw green cursor in center
+    const cursorX = canvasWidth / 2
+    const cursorY = canvasHeight / 2
+
+    // Pulsing effect
+    const pulse = Math.sin(Date.now() / 300) * 0.2 + 1
+    ctx.fillStyle = '#10b981' // green-500
+    ctx.globalAlpha = pulse * 0.8
+    ctx.beginPath()
+    ctx.arc(cursorX, cursorY, 12 * pulse, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.globalAlpha = 1
+
+    // Draw cursor ring
+    ctx.strokeStyle = '#10b981'
+    ctx.lineWidth = 3
+    ctx.beginPath()
+    ctx.arc(cursorX, cursorY, 25, 0, Math.PI * 2)
+    ctx.stroke()
+
+    // Draw instruction text
+    ctx.fillStyle = '#f1f5f9' // slate-100
+    ctx.font = 'bold 16px sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText('Click the green cursor to begin', canvasWidth / 2, canvasHeight - 20)
+    ctx.textAlign = 'left'
+
+    // Request next frame for animation
+    requestAnimationFrame(renderReadyState)
+  }
+
+  const render = (targetPos: number, _cursorPos: number) => {
     const canvas = canvasRef.current
     if (!canvas) return
 
@@ -173,9 +284,11 @@ export function ModuleA({ moduleRunId, difficulty, onTrialComplete }: ModuleAPro
     ctx.lineTo(canvasWidth, canvasHeight / 2)
     ctx.stroke()
 
-    // Convert normalized positions (-1 to 1) to canvas coordinates
+    // Convert target normalized position to canvas coordinates (with margin)
     const targetY = canvasHeight / 2 + targetPos * (canvasHeight / 2) * 0.8
-    const cursorY = canvasHeight / 2 + cursorPos * (canvasHeight / 2) * 0.8
+
+    // Draw cursor at EXACT mouse position (pixel-perfect)
+    const cursorY = mouseCanvasY.current
 
     // Draw target
     ctx.fillStyle = '#3b82f6' // blue-500
@@ -249,7 +362,7 @@ export function ModuleA({ moduleRunId, difficulty, onTrialComplete }: ModuleAPro
             ref={canvasRef}
             width={canvasWidth}
             height={canvasHeight}
-            className="border border-slate-700 rounded"
+            className={`border border-slate-700 rounded ${trialState === 'running' ? 'cursor-none' : 'cursor-pointer'}`}
           />
         </div>
 
