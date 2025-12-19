@@ -1,7 +1,7 @@
 # Development Progress
 
-**Last Updated:** 2025-12-18
-**Status:** Modules A, B, C, D complete. Analytics page complete.
+**Last Updated:** 2025-12-19
+**Status:** Modules A, B, C, D, E complete. Analytics page complete.
 
 ---
 
@@ -82,10 +82,34 @@
 - ✅ Accurate reaction time measurement (timer starts after render using useEffect + requestAnimationFrame)
 - ✅ Fixed all distractor generation bugs (removed L/S pieces to avoid duplicate mirrors)
 
+### Module E: Dual-Task Motor Control ✅
+- ✅ Split canvas architecture (1200x400 canvas):
+  - Left panel (600px): 1D horizontal tracking
+  - Right panel (600px): 2D tracking
+- ✅ Separate input systems:
+  - 1D task: Keyboard accumulator (A/D keys) independent of InputSystem
+  - 2D task: Mouse position from InputSystem
+  - Full input separation prevents cross-task interference
+- ✅ Baseline trial system:
+  - Sequential baseline trials (1D alone → 2D alone)
+  - Auto-advance after 1D baseline completes
+  - Baseline metrics stored in component state
+- ✅ Dual-task trial:
+  - Unified game loop updating both tasks simultaneously
+  - Separate sample recording for each task
+  - Combined event tagging for database storage
+- ✅ Multitask metrics calculation:
+  - Dual-task cost: `(dualRMSE - baselineRMSE) / baselineRMSE`
+  - Separate tracking metrics for each task
+  - Reuses existing `calculateTrackingMetrics()` functions
+- ✅ Trial management and data persistence
+- ✅ Real-time visual feedback with split rendering
+- ✅ Complete TypeScript type safety
+
 ### UI/UX
 - ✅ Home page with project overview
 - ✅ Navigation between all main sections
-- ✅ Training page with module selection (A, B, C, D)
+- ✅ Training page with module selection (A, B, C, D, E)
 - ✅ Analytics page with performance visualization
 - ✅ Placeholder pages for Hardware, Export
 - ✅ Session status display with trial counts
@@ -328,19 +352,21 @@
 
 ## 🚧 Known Limitations & Technical Debt
 
-1. **No data export UI** - Backend functions exist but no user interface
+1. **Mouse tracking needs fixing in Module A and Module B** - Issue to be addressed
 
-2. **Adaptive difficulty for Module C not implemented** - Difficulty parameter exists but doesn't affect tone similarity or ISI jitter
+2. **No data export UI** - Backend functions exist but no user interface
 
-3. **Hard-coded trial parameters** - Duration, number of stimuli, etc. should be configurable
+3. **Adaptive difficulty for Module C not implemented** - Difficulty parameter exists but doesn't affect tone similarity or ISI jitter
 
-4. **No baseline assessment** - PROJECT.md specifies optional baseline, not implemented
+4. **Hard-coded trial parameters** - Duration, number of stimuli, etc. should be configurable
 
-5. **Session management is simple** - No session naming, notes, or metadata
+5. **No baseline assessment** - PROJECT.md specifies optional baseline, not implemented
 
-6. **No gamepad support yet** - Architecture is ready but Gamepad API polling not implemented
+6. **Session management is simple** - No session naming, notes, or metadata
 
-7. **Pointer Lock exit not handled gracefully** - User can exit pointer lock without app knowing
+7. **No gamepad support yet** - Architecture is ready but Gamepad API polling not implemented
+
+8. **Pointer Lock exit not handled gracefully** - User can exit pointer lock without app knowing
 
 ---
 

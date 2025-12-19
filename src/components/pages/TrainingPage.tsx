@@ -3,6 +3,7 @@ import { ModuleA } from '@/modules/ModuleA'
 import { ModuleB } from '@/modules/ModuleB'
 import { ModuleC } from '@/modules/ModuleC'
 import { ModuleD } from '@/modules/ModuleD'
+import { ModuleE } from '@/modules/ModuleE'
 import type { Session, ModuleRun, Trial, UserProfile, HardwareProfile } from '@/types'
 import {
   createSession,
@@ -165,6 +166,35 @@ export function TrainingPage() {
       sessionId: session.id,
       moduleId: 'D',
       variant: 'adaptive',
+      startTimestamp: Date.now(),
+      trials: [],
+    }
+    await createModuleRun(moduleRun)
+    setActiveModuleRun(moduleRun)
+  }
+
+  const startModuleE = async () => {
+    if (!userProfile) return
+
+    // Create new session if needed
+    let session = activeSession
+    if (!session) {
+      session = {
+        id: crypto.randomUUID(),
+        userProfileId: userProfile.id,
+        timestamp: Date.now(),
+        moduleRuns: [],
+      }
+      await createSession(session)
+      setActiveSession(session)
+    }
+
+    // Create module run
+    const moduleRun: ModuleRun = {
+      id: crypto.randomUUID(),
+      sessionId: session.id,
+      moduleId: 'E',
+      variant: 'dual-task',
       startTimestamp: Date.now(),
       trials: [],
     }
@@ -361,6 +391,22 @@ export function TrainingPage() {
               </span>
             </div>
           </button>
+
+          <button
+            onClick={startModuleE}
+            className="bg-slate-800 hover:bg-slate-700 rounded-lg p-6 text-left transition-colors border border-slate-700 hover:border-blue-500"
+          >
+            <h3 className="text-xl font-semibold mb-2 text-blue-400">Module E</h3>
+            <p className="text-slate-300 text-sm mb-3">Dual-Task Motor Control</p>
+            <div className="flex gap-2 flex-wrap">
+              <span className="px-2 py-1 bg-slate-900 rounded text-xs text-slate-400">
+                Multitasking
+              </span>
+              <span className="px-2 py-1 bg-slate-900 rounded text-xs text-slate-400">
+                Motor Control
+              </span>
+            </div>
+          </button>
         </div>
       )}
 
@@ -391,6 +437,14 @@ export function TrainingPage() {
 
       {activeModuleRun && activeModuleRun.moduleId === 'D' && (
         <ModuleD
+          moduleRunId={activeModuleRun.id}
+          difficulty={currentDifficulty}
+          onTrialComplete={handleTrialComplete}
+        />
+      )}
+
+      {activeModuleRun && activeModuleRun.moduleId === 'E' && (
+        <ModuleE
           moduleRunId={activeModuleRun.id}
           difficulty={currentDifficulty}
           onTrialComplete={handleTrialComplete}

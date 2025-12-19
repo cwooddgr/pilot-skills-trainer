@@ -111,9 +111,16 @@ npm run preview
   - Accurate reaction time measurement (timer starts after render)
   - Metrics: accuracy, reaction time, speed-accuracy tradeoff
 
+- **Module E** — Dual-Task Motor Control ✅
+  - Split canvas: Left = 1D horizontal tracking, Right = 2D tracking
+  - Baseline trials required (1D alone, then 2D alone)
+  - Dual-task trial runs both tasks simultaneously
+  - Keyboard (A/D) controls 1D task, Mouse controls 2D task
+  - Calculates dual-task cost metric: performance degradation when multitasking
+  - Metrics: dual-task cost, baseline RMSE, dual RMSE
+
 ### Planned
 
-- **Module E** — Dual-Task Motor Control
 - **Module F** — Triple-Task (Motor + Auditory)
 - **Module G** — Interrupt Handling Under Load
 
@@ -131,6 +138,7 @@ npm run preview
 - ✅ Module B: 2D pursuit tracking (mouse + WASD, Pointer Lock API)
 - ✅ Module C: Auditory selective attention (Web Audio API, Go/No-Go task)
 - ✅ Module D: Mental rotation (Tetris pieces, forced rotation, accurate timing)
+- ✅ Module E: Dual-task motor control (split canvas, baseline + dual-task trials, multitasking metrics)
 - ✅ Adaptive difficulty system (targets 70-85% success band)
 - ✅ Analytics page with performance visualization:
   - Overview statistics (sessions, trials, modules trained)
@@ -139,10 +147,10 @@ npm run preview
   - Recent sessions list with completion details
 
 ### Next Steps
-1. Build Module E (Dual-Task Motor Control)
-2. Build Module F (Triple-Task)
-3. Build Module G (Interrupt Handling)
-4. Add data export (JSON/CSV)
+1. Build Module F (Triple-Task Motor + Auditory)
+2. Build Module G (Interrupt Handling Under Load)
+3. Add data export (JSON/CSV)
+4. Add gamepad/joystick support
 
 ## Input Systems
 
@@ -179,6 +187,11 @@ npm run preview
 - **Accuracy** - Percentage of correct answers
 - **Reaction Time** - Mean time per task
 - **Speed-Accuracy Tradeoff** - Combined performance metric
+
+### Multitask Metrics (Module E)
+- **Dual-Task Cost** - Performance degradation when multitasking: `(dualRMSE - baselineRMSE) / baselineRMSE`
+- **Baseline RMSE** - Average tracking error across both tasks when performed individually
+- **Dual RMSE** - Average tracking error across both tasks when performed simultaneously
 
 ### Adaptive System
 - Targets 70-85% success rate across all modules
