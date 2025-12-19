@@ -15,11 +15,12 @@ interface ModuleBProps {
   onTrialComplete?: (trial: Trial) => void
 }
 
-type TrialState = 'idle' | 'running' | 'completed'
+type TrialState = 'idle' | 'ready' | 'running' | 'completed'
 
 export function ModuleB({ moduleRunId, difficulty, onTrialComplete }: ModuleBProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [trialState, setTrialState] = useState<TrialState>('idle')
+  const trialStateRef = useRef<TrialState>('idle')
   const [currentMetrics, setCurrentMetrics] = useState<TrackingMetrics | null>(null)
   const [trialDuration] = useState(30000) // 30 seconds per trial
 
@@ -31,6 +32,10 @@ export function ModuleB({ moduleRunId, difficulty, onTrialComplete }: ModuleBPro
   const trialStartTime = useRef<number>(0)
   const cursorPosition = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
 
+  // Raw mouse position in canvas pixels
+  const mouseCanvasX = useRef<number>(0)
+  const mouseCanvasY = useRef<number>(0)
+
   // Canvas dimensions
   const canvasWidth = 800
   const canvasHeight = 600
@@ -38,9 +43,50 @@ export function ModuleB({ moduleRunId, difficulty, onTrialComplete }: ModuleBPro
   useEffect(() => {
     if (!canvasRef.current) return
 
-    // Initialize input system with pointer lock for better 2D control
+    // Initialize input system WITHOUT pointer lock (we'll use direct mouse tracking)
     inputSystem.current = new InputSystem()
-    inputSystem.current.init(canvasRef.current, true)
+    inputSystem.current.init(canvasRef.current, false)
+
+    // Handle mouse movement for direct position tracking
+    const handleMouseMove = (e: MouseEvent) => {
+      const canvas = canvasRef.current
+      if (!canvas) return
+
+      const rect = canvas.getBoundingClientRect()
+      mouseCanvasX.current = e.clientX - rect.left
+      mouseCanvasY.current = e.clientY - rect.top
+    }
+
+    // Handle canvas click for trial initialization
+    const handleCanvasClick = (e: MouseEvent) => {
+      const state = trialStateRef.current
+      if (state !== 'ready') return
+
+      const canvas = canvasRef.current
+      if (!canvas) return
+
+      // Get click position relative to canvas
+      const rect = canvas.getBoundingClientRect()
+      const clickX = e.clientX - rect.left
+      const clickY = e.clientY - rect.top
+
+      // Cursor is in center of canvas
+      const cursorCanvasX = canvasWidth / 2
+      const cursorCanvasY = canvasHeight / 2
+
+      // Check if click is near cursor (within 50px)
+      const distance = Math.sqrt(
+        Math.pow(clickX - cursorCanvasX, 2) + Math.pow(clickY - cursorCanvasY, 2)
+      )
+
+      if (distance <= 50) {
+        // Click on cursor! Begin trial
+        beginTrialAfterClick()
+      }
+    }
+
+    canvasRef.current.addEventListener('mousemove', handleMouseMove)
+    canvasRef.current.addEventListener('click', handleCanvasClick)
 
     return () => {
       if (inputSystem.current) {
@@ -49,8 +95,20 @@ export function ModuleB({ moduleRunId, difficulty, onTrialComplete }: ModuleBPro
       if (animationFrameId.current !== null) {
         cancelAnimationFrame(animationFrameId.current)
       }
+      canvasRef.current?.removeEventListener('mousemove', handleMouseMove)
+      canvasRef.current?.removeEventListener('click', handleCanvasClick)
     }
   }, [])
+
+  // Sync trialState with ref to avoid closure issues
+  useEffect(() => {
+    trialStateRef.current = trialState
+
+    // Start ready state animation
+    if (trialState === 'ready') {
+      renderReadyState()
+    }
+  }, [trialState])
 
   const startTrial = () => {
     if (!canvasRef.current) return
@@ -73,12 +131,16 @@ export function ModuleB({ moduleRunId, difficulty, onTrialComplete }: ModuleBPro
       difficulty: difficulty,
     })
 
-    // Start trial
-    trialStartTime.current = performance.now()
-    setTrialState('running')
     setCurrentMetrics(null)
 
-    // Start game loop
+    // Show ready state first (click to start)
+    setTrialState('ready')
+  }
+
+  // Begin trial after click
+  const beginTrialAfterClick = () => {
+    trialStartTime.current = performance.now()
+    setTrialState('running')
     gameLoop()
   }
 
@@ -131,18 +193,23 @@ export function ModuleB({ moduleRunId, difficulty, onTrialComplete }: ModuleBPro
     const dt = 1 / 60 // Assume 60 FPS
     const targetPos = targetGenerator.current?.update(dt) || { x: 0, y: 0 }
 
-    // Get input
-    const inputState = inputSystem.current?.getState() || { x: 0, y: 0, buttons: new Map() }
+    // Update cursor using direct mouse position tracking (pixel-perfect)
+    // Convert mouse canvas pixel position to normalized coordinates
+    const normalizedX = (mouseCanvasX.current / canvasWidth) * 2 - 1
+    const normalizedY = (mouseCanvasY.current / canvasHeight) * 2 - 1
 
-    // Update cursor (2D, use both x and y axes)
-    cursorPosition.current = { x: inputState.x, y: inputState.y }
+    // Clamp to bounds
+    cursorPosition.current = {
+      x: Math.max(-1, Math.min(1, normalizedX)),
+      y: Math.max(-1, Math.min(1, normalizedY)),
+    }
 
     // Record sample
     samples.current.push({
       timestamp: elapsed,
       targetPosition: targetPos,
       cursorPosition: cursorPosition.current,
-      inputValue: { x: inputState.x, y: inputState.y },
+      inputValue: cursorPosition.current,
     })
 
     // Render
@@ -152,7 +219,65 @@ export function ModuleB({ moduleRunId, difficulty, onTrialComplete }: ModuleBPro
     animationFrameId.current = requestAnimationFrame(gameLoop)
   }
 
-  const render = (targetPos: { x: number; y: number }, cursorPos: { x: number; y: number }) => {
+  // Render ready state (waiting for click)
+  const renderReadyState = () => {
+    const canvas = canvasRef.current
+    const ctx = canvas?.getContext('2d')
+    if (!ctx || !canvas) return
+
+    const state = trialStateRef.current
+
+    // Stop animation if no longer in ready state
+    if (state !== 'ready') {
+      return
+    }
+
+    // Clear canvas
+    ctx.fillStyle = '#0f172a' // slate-900
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight)
+
+    // Draw center crosshairs
+    ctx.strokeStyle = '#334155' // slate-700
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.moveTo(0, canvasHeight / 2)
+    ctx.lineTo(canvasWidth, canvasHeight / 2)
+    ctx.moveTo(canvasWidth / 2, 0)
+    ctx.lineTo(canvasWidth / 2, canvasHeight)
+    ctx.stroke()
+
+    // Draw green cursor in center
+    const cursorX = canvasWidth / 2
+    const cursorY = canvasHeight / 2
+
+    // Pulsing effect
+    const pulse = Math.sin(Date.now() / 300) * 0.2 + 1
+    ctx.fillStyle = '#10b981' // green-500
+    ctx.globalAlpha = pulse * 0.8
+    ctx.beginPath()
+    ctx.arc(cursorX, cursorY, 15 * pulse, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.globalAlpha = 1
+
+    // Draw cursor ring
+    ctx.strokeStyle = '#10b981'
+    ctx.lineWidth = 3
+    ctx.beginPath()
+    ctx.arc(cursorX, cursorY, 30, 0, Math.PI * 2)
+    ctx.stroke()
+
+    // Draw instruction text
+    ctx.fillStyle = '#f1f5f9' // slate-100
+    ctx.font = 'bold 20px sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText('Click the green cursor to begin', canvasWidth / 2, canvasHeight - 40)
+    ctx.textAlign = 'left'
+
+    // Request next frame for animation
+    requestAnimationFrame(renderReadyState)
+  }
+
+  const render = (targetPos: { x: number; y: number }, _cursorPos: { x: number; y: number }) => {
     const canvas = canvasRef.current
     if (!canvas) return
 
@@ -173,11 +298,13 @@ export function ModuleB({ moduleRunId, difficulty, onTrialComplete }: ModuleBPro
     ctx.lineTo(canvasWidth / 2, canvasHeight)
     ctx.stroke()
 
-    // Convert normalized positions (-1 to 1) to canvas coordinates
+    // Convert target normalized position to canvas coordinates (with margin)
     const targetX = canvasWidth / 2 + targetPos.x * (canvasWidth / 2) * 0.8
     const targetY = canvasHeight / 2 + targetPos.y * (canvasHeight / 2) * 0.8
-    const cursorX = canvasWidth / 2 + cursorPos.x * (canvasWidth / 2) * 0.8
-    const cursorY = canvasHeight / 2 + cursorPos.y * (canvasHeight / 2) * 0.8
+
+    // Draw cursor at EXACT mouse position (pixel-perfect)
+    const cursorX = mouseCanvasX.current
+    const cursorY = mouseCanvasY.current
 
     // Draw target
     ctx.fillStyle = '#3b82f6' // blue-500

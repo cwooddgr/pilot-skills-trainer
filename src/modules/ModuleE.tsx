@@ -21,7 +21,7 @@ interface ModuleEProps {
   onTrialComplete?: (trial: Trial) => void
 }
 
-type TrialMode = 'idle' | 'baseline-1d' | 'baseline-2d' | 'dual-task'
+type TrialMode = 'idle' | 'baseline-1d' | 'baseline-2d' | 'dual-task' | 'ready-2d' | 'ready-dual'
 
 export function ModuleE({ moduleRunId, difficulty, onTrialComplete }: ModuleEProps) {
   // Canvas ref
@@ -36,6 +36,7 @@ export function ModuleE({ moduleRunId, difficulty, onTrialComplete }: ModuleEPro
   const [dualTaskCost, setDualTaskCost] = useState<number | null>(null)
 
   // Game state refs
+  const trialModeRef = useRef<TrialMode>('idle')
   const inputSystem = useRef<InputSystem | null>(null)
   const targetGenerator1D = useRef<TargetGenerator | null>(null)
   const targetGenerator2D = useRef<TargetGenerator2D | null>(null)
@@ -46,6 +47,10 @@ export function ModuleE({ moduleRunId, difficulty, onTrialComplete }: ModuleEPro
   // Cursor positions
   const keyboard1DPosition = useRef<number>(0)
   const cursor2DPosition = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
+
+  // Raw mouse position in canvas pixels
+  const mouseCanvasX = useRef<number>(0)
+  const mouseCanvasY = useRef<number>(0)
 
   // Sample recording
   const samples1D = useRef<TrackingSample[]>([])
@@ -81,15 +86,73 @@ export function ModuleE({ moduleRunId, difficulty, onTrialComplete }: ModuleEPro
       keysPressed.current.delete(key)
     }
 
+    // Handle mouse movement for direct position tracking
+    const handleMouseMove = (e: MouseEvent) => {
+      const canvas = canvasRef.current
+      if (!canvas) return
+
+      const rect = canvas.getBoundingClientRect()
+      mouseCanvasX.current = e.clientX - rect.left
+      mouseCanvasY.current = e.clientY - rect.top
+    }
+
+    // Handle canvas click for 2D trial initialization
+    const handleCanvasClick = (e: MouseEvent) => {
+      const mode = trialModeRef.current
+      if (mode !== 'ready-2d' && mode !== 'ready-dual') return
+
+      const canvas = canvasRef.current
+      if (!canvas) return
+
+      // Get click position relative to canvas
+      const rect = canvas.getBoundingClientRect()
+      const clickX = e.clientX - rect.left
+      const clickY = e.clientY - rect.top
+
+      // For ready-2d, cursor is in right panel center
+      // For ready-dual, cursor is also in right panel center
+      const panelOffsetX = mode === 'ready-2d' || mode === 'ready-dual' ? 600 : 0
+      const cursorCanvasX = panelOffsetX + 300 // Center of right panel
+      const cursorCanvasY = 200 // Center vertically
+
+      // Check if click is near cursor (within 50px)
+      const distance = Math.sqrt(
+        Math.pow(clickX - cursorCanvasX, 2) + Math.pow(clickY - cursorCanvasY, 2)
+      )
+
+      if (distance <= 50) {
+        // Click on cursor! Begin trial
+        if (mode === 'ready-2d') {
+          beginTrialAfterClick('baseline-2d')
+        } else if (mode === 'ready-dual') {
+          beginTrialAfterClick('dual-task')
+        }
+      }
+    }
+
     window.addEventListener('keydown', handleKeyDown)
     window.addEventListener('keyup', handleKeyUp)
+    canvasRef.current.addEventListener('mousemove', handleMouseMove)
+    canvasRef.current.addEventListener('click', handleCanvasClick)
 
     return () => {
       inputSystem.current?.destroy()
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
+      canvasRef.current?.removeEventListener('mousemove', handleMouseMove)
+      canvasRef.current?.removeEventListener('click', handleCanvasClick)
     }
   }, [])
+
+  // Sync trialMode state with ref to avoid closure issues in game loop
+  useEffect(() => {
+    trialModeRef.current = trialMode
+
+    // Start ready state animation for 2D trials
+    if (trialMode === 'ready-2d' || trialMode === 'ready-dual') {
+      renderReadyState()
+    }
+  }, [trialMode])
 
   // Update keyboard-controlled 1D position
   const updateKeyboard1D = (dt: number) => {
@@ -106,7 +169,7 @@ export function ModuleE({ moduleRunId, difficulty, onTrialComplete }: ModuleEPro
     keyboard1DPosition.current = Math.max(-1, Math.min(1, keyboard1DPosition.current))
   }
 
-  // Start trial
+  // Start trial (or ready state for 2D trials)
   const startTrial = (mode: TrialMode) => {
     if (!canvasRef.current) return
 
@@ -119,7 +182,7 @@ export function ModuleE({ moduleRunId, difficulty, onTrialComplete }: ModuleEPro
     keysPressed.current.clear()
 
     // Create target generators based on mode
-    if (mode === 'baseline-1d' || mode === 'dual-task') {
+    if (mode === 'baseline-1d' || mode === 'dual-task' || mode === 'ready-dual') {
       // Random variant for 1D
       const variant1D = Math.random() < 0.5 ? 'sinusoid' : 'ornstein-uhlenbeck'
       targetGenerator1D.current = createTargetGenerator({
@@ -129,7 +192,7 @@ export function ModuleE({ moduleRunId, difficulty, onTrialComplete }: ModuleEPro
       })
     }
 
-    if (mode === 'baseline-2d' || mode === 'dual-task') {
+    if (mode === 'baseline-2d' || mode === 'dual-task' || mode === 'ready-2d' || mode === 'ready-dual') {
       // Random variant for 2D
       const variant2D = Math.random() < 0.5 ? 'momentum' : 'curvilinear'
       targetGenerator2D.current = createTargetGenerator2D({
@@ -139,15 +202,29 @@ export function ModuleE({ moduleRunId, difficulty, onTrialComplete }: ModuleEPro
       })
     }
 
-    // Start trial
-    trialStartTime.current = performance.now()
-    lastUpdateTime.current = performance.now()
-    setTrialMode(mode)
     setCurrentMetrics1D(null)
     setCurrentMetrics2D(null)
     setDualTaskCost(null)
 
-    // Start game loop
+    // For 2D trials, show "ready" screen first
+    if (mode === 'baseline-2d') {
+      setTrialMode('ready-2d')
+    } else if (mode === 'dual-task') {
+      setTrialMode('ready-dual')
+    } else {
+      // 1D trial starts immediately
+      trialStartTime.current = performance.now()
+      lastUpdateTime.current = performance.now()
+      setTrialMode(mode)
+      gameLoop()
+    }
+  }
+
+  // Begin trial after click (for 2D trials)
+  const beginTrialAfterClick = (mode: TrialMode) => {
+    trialStartTime.current = performance.now()
+    lastUpdateTime.current = performance.now()
+    setTrialMode(mode)
     gameLoop()
   }
 
@@ -164,7 +241,7 @@ export function ModuleE({ moduleRunId, difficulty, onTrialComplete }: ModuleEPro
       return
     }
 
-    const mode = trialMode
+    const mode = trialModeRef.current
 
     // Update targets
     const target1D = (mode === 'baseline-1d' || mode === 'dual-task')
@@ -175,18 +252,28 @@ export function ModuleE({ moduleRunId, difficulty, onTrialComplete }: ModuleEPro
       ? targetGenerator2D.current?.update(1 / 60) || { x: 0, y: 0 }
       : { x: 0, y: 0 }
 
-    // Get input state
-    const inputState = inputSystem.current?.getState() || { x: 0, y: 0, buttons: new Map() }
-
     // Update cursors
     // 1D: Use keyboard accumulator
     if (mode === 'baseline-1d' || mode === 'dual-task') {
       updateKeyboard1D(dt)
     }
 
-    // 2D: Use mouse position
+    // 2D: Use direct mouse position tracking (pixel-perfect)
     if (mode === 'baseline-2d' || mode === 'dual-task') {
-      cursor2DPosition.current = { x: inputState.x, y: inputState.y }
+      // Convert mouse canvas pixel position to normalized coordinates
+      // Right panel is from x=600 to x=1200
+      const mousePanelX = mouseCanvasX.current - leftPanelWidth
+      const mousePanelY = mouseCanvasY.current
+
+      // Normalize to [-1, 1]
+      const normalizedX = (mousePanelX / rightPanelWidth) * 2 - 1
+      const normalizedY = (mousePanelY / canvasHeight) * 2 - 1
+
+      // Clamp to bounds
+      cursor2DPosition.current = {
+        x: Math.max(-1, Math.min(1, normalizedX)),
+        y: Math.max(-1, Math.min(1, normalizedY)),
+      }
     }
 
     // Record samples
@@ -223,7 +310,7 @@ export function ModuleE({ moduleRunId, difficulty, onTrialComplete }: ModuleEPro
       animationFrameId.current = null
     }
 
-    const mode = trialMode
+    const mode = trialModeRef.current
 
     if (mode === 'baseline-1d') {
       // Calculate and store 1D baseline metrics
@@ -307,6 +394,73 @@ export function ModuleE({ moduleRunId, difficulty, onTrialComplete }: ModuleEPro
     }
   }
 
+  // Render ready state (waiting for click)
+  const renderReadyState = () => {
+    const canvas = canvasRef.current
+    const ctx = canvas?.getContext('2d')
+    if (!ctx || !canvas) return
+
+    const mode = trialModeRef.current
+
+    // Stop animation if no longer in ready state
+    if (mode !== 'ready-2d' && mode !== 'ready-dual') {
+      return
+    }
+
+    // Clear canvas
+    ctx.fillStyle = '#0f172a' // slate-900
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight)
+
+    // Draw background for active panel(s)
+    if (mode === 'ready-dual') {
+      // Both panels active
+      ctx.fillStyle = '#1e293b' // slate-800
+      ctx.fillRect(0, 0, leftPanelWidth, canvasHeight)
+    }
+    if (mode === 'ready-2d' || mode === 'ready-dual') {
+      ctx.fillStyle = '#1e293b' // slate-800
+      ctx.fillRect(leftPanelWidth, 0, rightPanelWidth, canvasHeight)
+    }
+
+    // Draw vertical divider
+    ctx.strokeStyle = '#475569' // slate-600
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.moveTo(leftPanelWidth, 0)
+    ctx.lineTo(leftPanelWidth, canvasHeight)
+    ctx.stroke()
+
+    // Draw green cursor in center of right panel
+    const cursorX = leftPanelWidth + rightPanelWidth / 2
+    const cursorY = canvasHeight / 2
+
+    // Pulsing effect
+    const pulse = Math.sin(Date.now() / 300) * 0.2 + 1
+    ctx.fillStyle = '#10b981' // green-500
+    ctx.globalAlpha = pulse * 0.8
+    ctx.beginPath()
+    ctx.arc(cursorX, cursorY, 15 * pulse, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.globalAlpha = 1
+
+    // Draw cursor ring
+    ctx.strokeStyle = '#10b981'
+    ctx.lineWidth = 3
+    ctx.beginPath()
+    ctx.arc(cursorX, cursorY, 30, 0, Math.PI * 2)
+    ctx.stroke()
+
+    // Draw instruction text
+    ctx.fillStyle = '#f1f5f9' // slate-100
+    ctx.font = 'bold 20px sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText('Click the green cursor to begin', canvasWidth / 2, canvasHeight - 40)
+    ctx.textAlign = 'left'
+
+    // Request next frame for animation
+    requestAnimationFrame(renderReadyState)
+  }
+
   // Render function
   const render = (
     target1D: number,
@@ -319,7 +473,7 @@ export function ModuleE({ moduleRunId, difficulty, onTrialComplete }: ModuleEPro
     const ctx = canvas?.getContext('2d')
     if (!ctx || !canvas) return
 
-    const mode = trialMode
+    const mode = trialModeRef.current
 
     // Clear canvas
     ctx.fillStyle = '#0f172a' // slate-900
@@ -431,17 +585,19 @@ export function ModuleE({ moduleRunId, difficulty, onTrialComplete }: ModuleEPro
   const render2DTask = (
     ctx: CanvasRenderingContext2D,
     targetPos: { x: number; y: number },
-    cursorPos: { x: number; y: number },
+    _cursorPos: { x: number; y: number },
     offsetX: number
   ) => {
     const centerX = offsetX + rightPanelWidth / 2
     const centerY = canvasHeight / 2
 
-    // Convert normalized positions to canvas coordinates
+    // Convert target normalized position to canvas coordinates (with margin)
     const targetX = centerX + targetPos.x * (rightPanelWidth / 2) * 0.8
     const targetY = centerY + targetPos.y * (canvasHeight / 2) * 0.8
-    const cursorX = centerX + cursorPos.x * (rightPanelWidth / 2) * 0.8
-    const cursorY = centerY + cursorPos.y * (canvasHeight / 2) * 0.8
+
+    // Draw cursor at EXACT mouse position (pixel-perfect)
+    const cursorX = mouseCanvasX.current
+    const cursorY = mouseCanvasY.current
 
     // Draw center crosshairs
     ctx.strokeStyle = '#334155' // slate-700
