@@ -725,7 +725,9 @@ export function ModuleE({ moduleRunId, difficulty, onTrialComplete }: ModuleEPro
           ref={canvasRef}
           width={canvasWidth}
           height={canvasHeight}
-          className="border border-slate-700 rounded"
+          className={`border border-slate-700 rounded ${
+            trialMode === 'baseline-2d' || trialMode === 'dual-task' ? 'cursor-none' : 'cursor-pointer'
+          }`}
         />
       </div>
 

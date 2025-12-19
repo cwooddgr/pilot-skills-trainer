@@ -398,7 +398,7 @@ export function ModuleB({ moduleRunId, difficulty, onTrialComplete }: ModuleBPro
             ref={canvasRef}
             width={canvasWidth}
             height={canvasHeight}
-            className="border border-slate-700 rounded cursor-none"
+            className={`border border-slate-700 rounded ${trialState === 'running' ? 'cursor-none' : 'cursor-pointer'}`}
           />
         </div>
 
