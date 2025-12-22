@@ -8,7 +8,6 @@ export function Navigation() {
     { path: '/hardware', label: 'Hardware Setup' },
     { path: '/training', label: 'Training' },
     { path: '/analytics', label: 'Analytics' },
-    { path: '/export', label: 'Export Data' },
   ]
 
   const isActive = (path: string) => {

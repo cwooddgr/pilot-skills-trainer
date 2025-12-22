@@ -159,11 +159,27 @@ export interface TripleTaskMetrics {
 }
 
 export interface InterruptMetrics {
-  interruptRT: number[]
-  meanInterruptRT: number
-  errorSpikes: number[]
-  recoveryTimes: number[]
+  // Tracking performance
+  baselineRMSE: number
+  interruptRMSE: number
+  overallRMSE: number
+  interferenceCost: number
+
+  // Interrupt task performance
+  interruptAccuracy: number
+  interruptHitRate: number
+  interruptMissRate: number
+  interruptErrorRate: number
+  meanReactionTime: number
+
+  // Recovery metrics
   meanRecoveryTime: number
+
+  // Raw counts
+  totalInterrupts: number
+  correctResponses: number
+  incorrectResponses: number
+  missedResponses: number
 }
 
 export interface SpatialMetrics {

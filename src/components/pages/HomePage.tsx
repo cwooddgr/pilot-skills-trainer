@@ -52,19 +52,6 @@ export function HomePage() {
             for improvement.
           </p>
         </Link>
-
-        <Link
-          to="/export"
-          className="bg-slate-800 hover:bg-slate-700 rounded-lg p-6 transition-colors border border-slate-700 hover:border-blue-500"
-        >
-          <h2 className="text-xl font-semibold mb-2 text-blue-400">
-            4. Export Data
-          </h2>
-          <p className="text-slate-300">
-            Download your training data in JSON or CSV format for external
-            analysis.
-          </p>
-        </Link>
       </div>
 
       <div className="mt-8 bg-slate-800 rounded-lg p-6 border border-slate-700">

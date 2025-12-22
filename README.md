@@ -128,9 +128,13 @@ npm run preview
   - Interference metrics: tracking error spikes in ±500ms windows around auditory events
   - Metrics: tracking (1D + 2D), attention (d-prime), dual-motor cost, auditory cost, interference
 
-### Planned
-
-- **Module G** — Interrupt Handling Under Load
+- **Module G** — Interrupt Handling Under Load ✅
+  - 2D pursuit tracking with time-critical visual interrupts
+  - Baseline period (5-8s) establishes tracking performance
+  - Visual interrupts require immediate color classification (1-4 keys)
+  - Difficulty scaling: interrupt frequency (2-7s), response window (800-1500ms), classification complexity (2-4 options)
+  - Measures task-switching performance and interrupt recovery
+  - Metrics: tracking (baseline, interrupt, overall RMSE), interrupt performance (accuracy, hit rate, reaction time), interference cost, recovery time
 
 ## Implementation Status
 
@@ -148,6 +152,7 @@ npm run preview
 - ✅ Module D: Mental rotation (Tetris pieces, forced rotation, accurate timing)
 - ✅ Module E: Dual-task motor control (split canvas, baseline + dual-task trials, multitasking metrics)
 - ✅ Module F: Triple-task motor + auditory (dual game loop, interference metrics, cognitive load measurement)
+- ✅ Module G: Interrupt handling under load (visual interrupts, task switching, recovery metrics)
 - ✅ Adaptive difficulty system (targets 70-85% success band)
 - ✅ Analytics page with performance visualization:
   - Overview statistics (sessions, trials, modules trained)
@@ -156,9 +161,7 @@ npm run preview
   - Recent sessions list with completion details
 
 ### Next Steps
-1. Build Module G (Interrupt Handling Under Load)
-2. Add data export (JSON/CSV)
-3. Add gamepad/joystick support
+1. Add gamepad/joystick support
 
 ## Input Systems
 
@@ -212,6 +215,19 @@ npm run preview
   - Error spikes around stimuli (all auditory tones)
   - Mean error spike magnitudes
 
+### Interrupt Handling Metrics (Module G)
+- **Tracking Performance**
+  - Baseline RMSE (no interrupts nearby)
+  - Interrupt RMSE (±1000ms around interrupts)
+  - Interference Cost (tracking degradation during interrupts)
+- **Interrupt Task Performance**
+  - Accuracy (% correct classifications)
+  - Hit Rate (% responded in time)
+  - Miss Rate (% not responded in time)
+  - Mean Reaction Time
+- **Recovery Metrics**
+  - Mean Recovery Time (time to return to baseline tracking quality)
+
 ### Adaptive System
 - Targets 70-85% success rate across all modules
 - Adjusts difficulty incrementally (+/- 0.05 per trial)
@@ -226,7 +242,6 @@ npm run preview
 - No analytics, telemetry, or tracking
 - No account or login required
 - No network requests (fully offline capable)
-- Full data export to JSON/CSV (planned)
 
 ## Design Constraints
 
@@ -256,8 +271,7 @@ See `DESIGN_RATIONALE.md` for full rationale.
 
 ## Known Issues
 
-1. **Data Export**: JSON/CSV export not yet implemented
-2. **Gamepad Support**: Planned but not implemented
+None currently. All core training modules (A-G) are implemented and functional.
 
 ## License
 

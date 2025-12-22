@@ -21,7 +21,6 @@ These constraints override all other instructions.
 - Provide explicit hardware detection, axis mapping, and calibration
 - Use randomized task generation (no fixed sequences, layouts, or timing envelopes)
 - Store all user data locally by default
-- Support export of all session data
 
 ### The system MUST NOT:
 - Replicate or simulate the structure of any proprietary selection exam
@@ -61,13 +60,13 @@ These constraints override all other instructions.
 
 Claude must not invent additional modules without instruction.
 
-- **Module A** — 1D Pursuit Tracking  
-- **Module B** — 2D Pursuit Tracking  
-- **Module C** — Auditory Selective Attention  
-- **Module D** — Spatial Orientation Tasks  
-- **Module E** — Dual-Task Motor Control  
-- **Module F** — Triple-Task (Motor + Auditory)  
-- **Module G** — Interrupt Handling Under Load  
+- **Module A** — 1D Pursuit Tracking ✅
+- **Module B** — 2D Pursuit Tracking ✅
+- **Module C** — Auditory Selective Attention ✅
+- **Module D** — Spatial Orientation Tasks ✅
+- **Module E** — Dual-Task Motor Control ✅
+- **Module F** — Triple-Task (Motor + Auditory) ✅
+- **Module G** — Interrupt Handling Under Load ✅  
 
 Each module MUST:
 - Have ≥2 internal variants
@@ -126,11 +125,10 @@ Abstract representations SHOULD be used for baseline and adaptive assessment loo
 
 ## 9. Mandatory UX Flow
 
-1. Hardware detection & calibration  
-2. Optional baseline assessment (abstract representations only)  
-3. Training session (single or mixed modules)  
+1. Hardware detection & calibration
+2. Optional baseline assessment (abstract representations only)
+3. Training session (single or mixed modules)
 4. Post-session analytics  
-5. Local data export  
 
 ---
 
@@ -152,7 +150,6 @@ These names are authoritative and must be reused:
 - Local-only storage by default (IndexedDB)
 - No analytics, telemetry, or tracking
 - No login required
-- Explicit export to JSON and CSV
 
 ---
 

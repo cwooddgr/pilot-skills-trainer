@@ -5,6 +5,7 @@ import { ModuleC } from '@/modules/ModuleC'
 import { ModuleD } from '@/modules/ModuleD'
 import { ModuleE } from '@/modules/ModuleE'
 import { ModuleF } from '@/modules/ModuleF'
+import { ModuleG } from '@/modules/ModuleG'
 import type { Session, ModuleRun, Trial, UserProfile, HardwareProfile } from '@/types'
 import {
   createSession,
@@ -225,6 +226,35 @@ export function TrainingPage() {
       sessionId: session.id,
       moduleId: 'F',
       variant: 'triple-task',
+      startTimestamp: Date.now(),
+      trials: [],
+    }
+    await createModuleRun(moduleRun)
+    setActiveModuleRun(moduleRun)
+  }
+
+  const startModuleG = async () => {
+    if (!userProfile) return
+
+    // Create new session if needed
+    let session = activeSession
+    if (!session) {
+      session = {
+        id: crypto.randomUUID(),
+        userProfileId: userProfile.id,
+        timestamp: Date.now(),
+        moduleRuns: [],
+      }
+      await createSession(session)
+      setActiveSession(session)
+    }
+
+    // Create module run
+    const moduleRun: ModuleRun = {
+      id: crypto.randomUUID(),
+      sessionId: session.id,
+      moduleId: 'G',
+      variant: 'interrupt-handling',
       startTimestamp: Date.now(),
       trials: [],
     }
@@ -456,6 +486,25 @@ export function TrainingPage() {
               </span>
             </div>
           </button>
+
+          <button
+            onClick={startModuleG}
+            className="bg-slate-800 hover:bg-slate-700 rounded-lg p-6 text-left transition-colors border border-slate-700 hover:border-blue-500"
+          >
+            <h3 className="text-xl font-semibold mb-2 text-blue-400">Module G</h3>
+            <p className="text-slate-300 text-sm mb-3">Interrupt Handling Under Load</p>
+            <div className="flex gap-2 flex-wrap">
+              <span className="px-2 py-1 bg-slate-900 rounded text-xs text-slate-400">
+                Task Switching
+              </span>
+              <span className="px-2 py-1 bg-slate-900 rounded text-xs text-slate-400">
+                Motor Control
+              </span>
+              <span className="px-2 py-1 bg-slate-900 rounded text-xs text-slate-400">
+                Interrupt Recovery
+              </span>
+            </div>
+          </button>
         </div>
       )}
 
@@ -502,6 +551,14 @@ export function TrainingPage() {
 
       {activeModuleRun && activeModuleRun.moduleId === 'F' && (
         <ModuleF
+          moduleRunId={activeModuleRun.id}
+          difficulty={currentDifficulty}
+          onTrialComplete={handleTrialComplete}
+        />
+      )}
+
+      {activeModuleRun && activeModuleRun.moduleId === 'G' && (
+        <ModuleG
           moduleRunId={activeModuleRun.id}
           difficulty={currentDifficulty}
           onTrialComplete={handleTrialComplete}
