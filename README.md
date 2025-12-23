@@ -22,13 +22,18 @@ tbas/
 │   │   ├── ModuleB.tsx   # 2D Pursuit Tracking
 │   │   ├── ModuleC.tsx   # Auditory Selective Attention
 │   │   └── ModuleD.tsx   # Mental Rotation (in progress)
-│   ├── stores/            # State management
-│   ├── types/             # TypeScript type definitions
-│   ├── utils/             # Utility functions
-│   │   ├── targetGeneration.ts  # Target movement algorithms
-│   │   ├── trackingMetrics.ts   # Tracking performance calculations
-│   │   ├── spatialTasks.ts      # Mental rotation task generation
-│   │   └── spatialMetrics.ts    # Spatial performance calculations
+│   ├── context/            # React contexts
+│   │   └── HardwareContext.tsx  # Gamepad state management
+│   ├── hooks/              # Custom React hooks
+│   │   └── useGamepad1DInput.ts # 1D gamepad input hook
+│   ├── stores/             # State management
+│   ├── types/              # TypeScript type definitions
+│   ├── utils/              # Utility functions
+│   │   ├── targetGeneration.ts   # Target movement algorithms
+│   │   ├── targetGeneration2D.ts # 2D target movement
+│   │   ├── metricsCalculation.ts # Tracking metrics
+│   │   ├── inputSystem.ts        # Input handling
+│   │   └── gamepadManager.ts     # Gamepad detection and polling
 │   ├── lib/
 │   │   └── db.ts         # IndexedDB wrapper for local storage
 │   ├── App.tsx           # Main application component
@@ -79,14 +84,15 @@ npm run preview
 - **IndexedDB (via idb)** - Local data persistence
 - **Web Audio API** - Auditory stimulus generation
 - **Pointer Lock API** - Unlimited 2D mouse tracking
+- **Gamepad API** - Rudder pedal and joystick support
 
 ## Training Modules
 
 ### Implemented
 
 - **Module A** — 1D Pursuit Tracking ✅
-  - Momentum and curvilinear target generation
-  - Arrow key or WASD control
+  - Horizontal axis tracking with momentum and curvilinear target generation
+  - Mouse, arrow keys, or rudder pedal control
   - MAE, RMSE, time on target metrics
   - Adaptive difficulty based on tracking performance
 
@@ -115,7 +121,7 @@ npm run preview
   - Split canvas: Left = 1D horizontal tracking, Right = 2D tracking
   - Baseline trials required (1D alone, then 2D alone)
   - Dual-task trial runs both tasks simultaneously
-  - Keyboard (A/D) controls 1D task, Mouse controls 2D task
+  - Rudder pedals or keyboard (A/D) controls 1D task, Mouse controls 2D task
   - Calculates dual-task cost metric: performance degradation when multitasking
   - Metrics: dual-task cost, baseline RMSE, dual RMSE
 
@@ -123,7 +129,7 @@ npm run preview
   - Combines Module E (dual motor) with Module C (auditory Go/No-Go)
   - Baseline trials: 1D alone (30s), 2D alone (30s), Audio alone (60s)
   - Triple-task trial runs all three tasks simultaneously (60s)
-  - Independent input channels: A/D keys (1D), mouse (2D), spacebar (auditory)
+  - Independent input channels: rudder pedals or A/D keys (1D), mouse (2D), spacebar (auditory)
   - Dual game loop architecture: motor (requestAnimationFrame) + auditory (setTimeout)
   - Interference metrics: tracking error spikes in ±500ms windows around auditory events
   - Metrics: tracking (1D + 2D), attention (d-prime), dual-motor cost, auditory cost, interference
@@ -159,9 +165,11 @@ npm run preview
   - Module-specific performance cards with recent metrics
   - Performance over time charts (custom SVG-based)
   - Recent sessions list with completion details
-
-### Next Steps
-1. Add gamepad/joystick support
+- ✅ Gamepad/rudder pedal support:
+  - Hardware detection and calibration UI
+  - Axis selection, deadzone, sensitivity curves
+  - Exclusive input mode for 1D tracking (Modules A, E, F)
+  - Support for rudder pedals and joysticks via Gamepad API
 
 ## Input Systems
 
@@ -177,10 +185,18 @@ npm run preview
 - Relative movement capture
 - Configurable sensitivity
 
-### Gamepad (Future)
-- Gamepad API integration planned
-- Axis mapping and deadzone configuration
-- Support for joystick, throttle, rudder pedals
+### Gamepad/Rudder Pedals
+- **Gamepad API** for hardware input devices
+- Auto-detection with connection/disconnection events
+- Full calibration UI in Hardware page:
+  - Axis selection with live value monitoring
+  - Min/Max calibration wizard
+  - Deadzone adjustment
+  - Sensitivity curves (linear, quadratic, cubic)
+  - Axis inversion
+- Exclusive input mode for 1D tracking (disables keyboard/mouse)
+- Supported devices: rudder pedals, joysticks, flight controllers
+- Note: Chrome/Firefox recommended (Safari has limited Gamepad API support)
 
 ## Metrics & Adaptive Difficulty
 

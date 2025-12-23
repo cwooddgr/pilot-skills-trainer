@@ -8,6 +8,8 @@ import {
 } from '@/utils/metricsCalculation'
 import type { Trial, TrackingMetrics } from '@/types'
 import { createTrial } from '@/lib/db'
+import { useHardware } from '@/context/HardwareContext'
+import { useGamepad1DInput } from '@/hooks/useGamepad1DInput'
 
 interface ModuleAProps {
   moduleRunId: string
@@ -24,6 +26,23 @@ export function ModuleA({ moduleRunId, difficulty, onTrialComplete }: ModuleAPro
   const [currentMetrics, setCurrentMetrics] = useState<TrackingMetrics | null>(null)
   const [trialDuration] = useState(30000) // 30 seconds per trial
 
+  // Hardware/gamepad input
+  const { inputMode, isGamepadConnected } = useHardware()
+  const { value: gamepadValue, isActive: isGamepadActive } = useGamepad1DInput({
+    orientation: 'horizontal',
+    enabled: inputMode === 'gamepad',
+  })
+
+  // Store gamepad value in ref for use in render loop
+  const gamepadValueRef = useRef<number>(0)
+  const isGamepadActiveRef = useRef<boolean>(false)
+
+  // Keep refs in sync with hook values
+  useEffect(() => {
+    gamepadValueRef.current = gamepadValue
+    isGamepadActiveRef.current = isGamepadActive
+  }, [gamepadValue, isGamepadActive])
+
   // Game state refs (don't trigger re-renders)
   const targetGenerator = useRef<TargetGenerator | null>(null)
   const inputSystem = useRef<InputSystem | null>(null)
@@ -33,7 +52,7 @@ export function ModuleA({ moduleRunId, difficulty, onTrialComplete }: ModuleAPro
   const cursorPosition = useRef<number>(0)
 
   // Raw mouse position in canvas pixels (for pixel-perfect tracking)
-  const mouseCanvasY = useRef<number>(0)
+  const mouseCanvasX = useRef<number>(0)
 
   // Canvas dimensions
   const canvasWidth = 800
@@ -52,7 +71,7 @@ export function ModuleA({ moduleRunId, difficulty, onTrialComplete }: ModuleAPro
       if (!canvas) return
 
       const rect = canvas.getBoundingClientRect()
-      mouseCanvasY.current = e.clientY - rect.top
+      mouseCanvasX.current = e.clientX - rect.left
     }
 
     // Handle canvas click for trial initialization
@@ -65,13 +84,13 @@ export function ModuleA({ moduleRunId, difficulty, onTrialComplete }: ModuleAPro
 
       // Get click position relative to canvas
       const rect = canvas.getBoundingClientRect()
-      const clickY = e.clientY - rect.top
+      const clickX = e.clientX - rect.left
 
-      // Cursor is in center of canvas vertically
-      const cursorCanvasY = canvasHeight / 2
+      // Cursor is in center of canvas horizontally
+      const cursorCanvasX = canvasWidth / 2
 
       // Check if click is near cursor (within 50px)
-      const distance = Math.abs(clickY - cursorCanvasY)
+      const distance = Math.abs(clickX - cursorCanvasX)
 
       if (distance <= 50) {
         // Click on cursor! Begin trial
@@ -187,12 +206,16 @@ export function ModuleA({ moduleRunId, difficulty, onTrialComplete }: ModuleAPro
     const dt = 1 / 60 // Assume 60 FPS
     const targetPos = targetGenerator.current?.update(dt) || 0
 
-    // Update cursor using direct mouse position tracking (pixel-perfect)
-    // Convert mouse canvas pixel position to normalized coordinates
-    const normalizedY = (mouseCanvasY.current / canvasHeight) * 2 - 1
-
-    // Clamp to bounds
-    cursorPosition.current = Math.max(-1, Math.min(1, normalizedY))
+    // Update cursor position based on input mode
+    if (isGamepadActiveRef.current) {
+      // Gamepad mode: use gamepad value directly (already in -1 to 1 range)
+      cursorPosition.current = gamepadValueRef.current
+    } else {
+      // Mouse mode: convert mouse canvas pixel position to normalized coordinates
+      const normalizedX = (mouseCanvasX.current / canvasWidth) * 2 - 1
+      // Clamp to bounds
+      cursorPosition.current = Math.max(-1, Math.min(1, normalizedX))
+    }
 
     // Record sample
     samples.current.push({
@@ -226,12 +249,12 @@ export function ModuleA({ moduleRunId, difficulty, onTrialComplete }: ModuleAPro
     ctx.fillStyle = '#0f172a' // slate-900
     ctx.fillRect(0, 0, canvasWidth, canvasHeight)
 
-    // Draw center reference line (vertical)
+    // Draw center reference line (horizontal, in the middle)
     ctx.strokeStyle = '#334155' // slate-700
     ctx.lineWidth = 1
     ctx.beginPath()
-    ctx.moveTo(canvasWidth / 2, 0)
-    ctx.lineTo(canvasWidth / 2, canvasHeight)
+    ctx.moveTo(0, canvasHeight / 2)
+    ctx.lineTo(canvasWidth, canvasHeight / 2)
     ctx.stroke()
 
     // Draw green cursor in center
@@ -276,7 +299,7 @@ export function ModuleA({ moduleRunId, difficulty, onTrialComplete }: ModuleAPro
     ctx.fillStyle = '#0f172a' // slate-900
     ctx.fillRect(0, 0, canvasWidth, canvasHeight)
 
-    // Draw center line
+    // Draw center line (horizontal)
     ctx.strokeStyle = '#334155' // slate-700
     ctx.lineWidth = 1
     ctx.beginPath()
@@ -284,36 +307,43 @@ export function ModuleA({ moduleRunId, difficulty, onTrialComplete }: ModuleAPro
     ctx.lineTo(canvasWidth, canvasHeight / 2)
     ctx.stroke()
 
-    // Convert target normalized position to canvas coordinates (with margin)
-    const targetY = canvasHeight / 2 + targetPos * (canvasHeight / 2) * 0.8
+    // Convert target normalized position to canvas X coordinates (with margin)
+    const targetX = canvasWidth / 2 + targetPos * (canvasWidth / 2) * 0.9
 
-    // Draw cursor at EXACT mouse position (pixel-perfect)
-    const cursorY = mouseCanvasY.current
+    // Draw cursor - use gamepad position or mouse position
+    let cursorX: number
+    if (isGamepadActiveRef.current) {
+      // Gamepad mode: convert normalized value to canvas coordinates
+      cursorX = canvasWidth / 2 + cursorPosition.current * (canvasWidth / 2) * 0.9
+    } else {
+      // Mouse mode: use pixel-perfect mouse position
+      cursorX = mouseCanvasX.current
+    }
 
-    // Center position for target and cursor
-    const centerX = canvasWidth / 2
+    // Center Y position for target and cursor
+    const centerY = canvasHeight / 2
 
     // Draw target
     ctx.fillStyle = '#3b82f6' // blue-500
     ctx.beginPath()
-    ctx.arc(centerX, targetY, 12, 0, Math.PI * 2)
+    ctx.arc(targetX, centerY, 12, 0, Math.PI * 2)
     ctx.fill()
 
     // Draw cursor
     ctx.fillStyle = '#10b981' // green-500
     ctx.beginPath()
-    ctx.arc(centerX, cursorY, 10, 0, Math.PI * 2)
+    ctx.arc(cursorX, centerY, 10, 0, Math.PI * 2)
     ctx.fill()
 
     // Draw connecting line (error visualization)
-    const error = Math.abs(targetY - cursorY)
+    const error = Math.abs(targetX - cursorX)
     const errorColor = error < 15 ? '#10b981' : error < 30 ? '#f59e0b' : '#ef4444'
     ctx.strokeStyle = errorColor
     ctx.lineWidth = 2
     ctx.setLineDash([5, 5])
     ctx.beginPath()
-    ctx.moveTo(centerX, targetY)
-    ctx.lineTo(centerX, cursorY)
+    ctx.moveTo(targetX, centerY)
+    ctx.lineTo(cursorX, centerY)
     ctx.stroke()
     ctx.setLineDash([])
 
@@ -327,7 +357,10 @@ export function ModuleA({ moduleRunId, difficulty, onTrialComplete }: ModuleAPro
     // Draw instructions
     ctx.fillStyle = '#64748b' // slate-500
     ctx.font = '14px sans-serif'
-    ctx.fillText('Use ↑ ↓ arrow keys or mouse to match the blue target', 20, canvasHeight - 20)
+    const instructionText = isGamepadActiveRef.current
+      ? 'Use rudder pedals to match the blue target'
+      : 'Use ← → arrow keys or mouse to match the blue target'
+    ctx.fillText(instructionText, 20, canvasHeight - 20)
   }
 
   return (
@@ -335,8 +368,10 @@ export function ModuleA({ moduleRunId, difficulty, onTrialComplete }: ModuleAPro
       <div className="bg-slate-800 rounded-lg p-6">
         <h2 className="text-2xl font-bold mb-2">Module A: 1D Pursuit Tracking</h2>
         <p className="text-slate-300 mb-4">
-          Track the moving blue target with your cursor. Use arrow keys or mouse to control the
-          green cursor.
+          Track the moving blue target with your cursor.{' '}
+          {isGamepadConnected
+            ? 'Use rudder pedals to control the green cursor.'
+            : 'Use arrow keys or mouse to control the green cursor.'}
         </p>
 
         <div className="flex items-center gap-4 mb-4">

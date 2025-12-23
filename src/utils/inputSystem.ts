@@ -269,6 +269,51 @@ export function processAxisInput(
 }
 
 /**
+ * Apply min/max calibration to raw gamepad axis value
+ * Maps physical range to normalized [-1, 1]
+ */
+export function applyCalibration(
+  rawValue: number,
+  calibrationMin: number,
+  calibrationMax: number
+): number {
+  const range = calibrationMax - calibrationMin
+  if (range === 0) return 0
+
+  // Map to 0-1, then to -1 to 1
+  const normalized = (rawValue - calibrationMin) / range
+  return Math.max(-1, Math.min(1, normalized * 2 - 1))
+}
+
+/**
+ * Sensitivity curve types for gamepad input
+ */
+export type SensitivityCurve = 'linear' | 'quadratic' | 'cubic'
+
+/**
+ * Apply sensitivity curve to input value
+ * Input and output are in range [-1, 1]
+ */
+export function applySensitivityCurve(
+  value: number,
+  curve: SensitivityCurve
+): number {
+  const sign = Math.sign(value)
+  const abs = Math.abs(value)
+
+  switch (curve) {
+    case 'linear':
+      return value
+    case 'quadratic':
+      return sign * Math.pow(abs, 2)
+    case 'cubic':
+      return sign * Math.pow(abs, 3)
+    default:
+      return value
+  }
+}
+
+/**
  * Low-pass filter for smoothing input
  */
 export class InputFilter {

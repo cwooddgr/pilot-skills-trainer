@@ -1,7 +1,7 @@
 # Development Progress
 
-**Last Updated:** 2025-12-19
-**Status:** Modules A, B, C, D, E, F complete. Analytics page complete.
+**Last Updated:** 2025-12-23
+**Status:** All 7 modules (A-G) complete. Analytics page complete. Rudder pedal support complete.
 
 ---
 
@@ -174,6 +174,26 @@
 - ✅ Data fetching from IndexedDB with proper relationship reconstruction
 - ✅ Module-specific metric visualization based on metric type
 
+### Gamepad/Rudder Pedal Support ✅
+- ✅ Gamepad API integration with centralized `gamepadManager` singleton
+- ✅ Auto-detection with connection/disconnection events
+- ✅ Full calibration UI in Hardware page:
+  - Axis selection with live value monitoring
+  - Min/max calibration wizard (3-step process)
+  - Deadzone adjustment slider
+  - Sensitivity curves (linear, quadratic, cubic)
+  - Axis inversion toggle
+  - Test area with mini 1D tracking canvas
+- ✅ `HardwareContext` React context for global hardware state
+- ✅ `useGamepad1DInput` custom hook for module consumption
+- ✅ Exclusive input mode for 1D tracking:
+  - When gamepad detected, disables keyboard/mouse for 1D axis
+  - Applies to Modules A, E, F
+- ✅ IndexedDB persistence of hardware profiles
+- ✅ Sensitivity curve functions: linear, quadratic, cubic
+- ✅ Low-pass filter for input smoothing
+- ✅ Safari compatibility warning (limited Gamepad API support)
+
 ---
 
 ## 🐛 Bugs Fixed
@@ -252,6 +272,19 @@
     - Root cause: Y-axis label positioned too close to tick values
     - Fixed: Increased left padding and positioned label at x=16 instead of x=12
 
+### Rudder Pedals / Gamepad
+19. **Module A target speed too fast** - Horizontal axis much wider than vertical, target too fast
+    - Fixed: Reduced all target generator speeds by 50% (theta, sigma, frequency, acceleration)
+
+20. **Module E canvas too wide** - 1200px width was too large
+    - Fixed: Reduced to 1000px (500px per panel)
+
+21. **Module E click-to-start not working** - Click detection using hardcoded panel widths
+    - Fixed: Changed to use `leftPanelWidth` and `rightPanelWidth` variables
+
+22. **Module E 2D target movement restricted** - Target moving in small area
+    - Fixed: Increased margin from 0.8 to 0.9 (90% of panel used vs 80%)
+
 ---
 
 ## 📊 Performance Tested
@@ -288,28 +321,22 @@
 ## 🎯 Next Steps
 
 ### High Priority
-1. **Module G: Interrupt Handling Under Load**
-   - Random interrupts during tracking tasks
-   - Measure recovery time and accuracy degradation
-   - Integration with Module E or F
+1. **Analytics Page Enhancements**
+   - Add Module E visualization (dual-task cost)
+   - Add Module F visualization (interference metrics)
+   - Add Module G visualization (interrupt handling metrics)
+   - Charts for all module types
 
 ### Medium Priority
-2. **Data Export UI**
-   - JSON export for all session data
-   - CSV export for metrics analysis
-   - Per-session or bulk export options
+2. **Additional Calibration Features**
+   - 2D gamepad support (joysticks for Module B)
+   - Multiple device profiles
+   - Per-module sensitivity overrides
 
-3. **Analytics Page Enhancements**
-   - Add Module F visualization (interference metrics)
-   - Add Module E visualization (dual-task cost)
-   - Charts for triple-task metrics
-
-### Lower Priority
-4. **Hardware Detection & Calibration**
-   - Gamepad API integration
-   - Device detection UI
-   - Axis mapping interface
-   - Deadzone/sensitivity configuration
+3. **Training Improvements**
+   - Session notes and metadata
+   - Configurable trial parameters
+   - Baseline assessment mode
 
 ---
 
@@ -398,9 +425,7 @@
 
 6. **Session management is simple** - No session naming, notes, or metadata
 
-7. **No gamepad support yet** - Architecture is ready but Gamepad API polling not implemented
-
-8. **Pointer Lock exit not handled gracefully** - User can exit pointer lock without app knowing
+7. **Pointer Lock exit not handled gracefully** - User can exit pointer lock without app knowing
 
 ---
 

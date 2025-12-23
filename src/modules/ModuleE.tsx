@@ -14,6 +14,8 @@ import {
 } from '@/utils/metricsCalculationMultitask'
 import type { TrackingSample } from '@/utils/metricsCalculation'
 import type { TrackingSample2D } from '@/utils/metricsCalculation2D'
+import { useHardware } from '@/context/HardwareContext'
+import { useGamepad1DInput } from '@/hooks/useGamepad1DInput'
 
 interface ModuleEProps {
   moduleRunId: string
@@ -26,6 +28,23 @@ type TrialMode = 'idle' | 'baseline-1d' | 'baseline-2d' | 'dual-task' | 'ready-2
 export function ModuleE({ moduleRunId, difficulty, onTrialComplete }: ModuleEProps) {
   // Canvas ref
   const canvasRef = useRef<HTMLCanvasElement>(null)
+
+  // Hardware/gamepad input
+  const { inputMode } = useHardware()
+  const { value: gamepadValue, isActive: isGamepadActive } = useGamepad1DInput({
+    orientation: 'horizontal',
+    enabled: inputMode === 'gamepad',
+  })
+
+  // Store gamepad value in ref for use in game loop
+  const gamepadValueRef = useRef<number>(0)
+  const isGamepadActiveRef = useRef<boolean>(false)
+
+  // Keep refs in sync with hook values
+  useEffect(() => {
+    gamepadValueRef.current = gamepadValue
+    isGamepadActiveRef.current = isGamepadActive
+  }, [gamepadValue, isGamepadActive])
 
   // Trial state
   const [trialMode, setTrialMode] = useState<TrialMode>('idle')
@@ -61,10 +80,10 @@ export function ModuleE({ moduleRunId, difficulty, onTrialComplete }: ModuleEPro
 
   // Constants
   const trialDuration = 30000 // 30 seconds in ms
-  const canvasWidth = 1200
+  const canvasWidth = 1000
   const canvasHeight = 400
-  const leftPanelWidth = 600
-  const rightPanelWidth = 600
+  const leftPanelWidth = 500
+  const rightPanelWidth = 500
 
   // Initialize input system
   useEffect(() => {
@@ -111,9 +130,9 @@ export function ModuleE({ moduleRunId, difficulty, onTrialComplete }: ModuleEPro
 
       // For ready-2d, cursor is in right panel center
       // For ready-dual, cursor is also in right panel center
-      const panelOffsetX = mode === 'ready-2d' || mode === 'ready-dual' ? 600 : 0
-      const cursorCanvasX = panelOffsetX + 300 // Center of right panel
-      const cursorCanvasY = 200 // Center vertically
+      const panelOffsetX = mode === 'ready-2d' || mode === 'ready-dual' ? leftPanelWidth : 0
+      const cursorCanvasX = panelOffsetX + rightPanelWidth / 2 // Center of right panel
+      const cursorCanvasY = canvasHeight / 2 // Center vertically
 
       // Check if click is near cursor (within 50px)
       const distance = Math.sqrt(
@@ -154,19 +173,25 @@ export function ModuleE({ moduleRunId, difficulty, onTrialComplete }: ModuleEPro
     }
   }, [trialMode])
 
-  // Update keyboard-controlled 1D position
+  // Update keyboard-controlled 1D position (or gamepad when active)
   const updateKeyboard1D = (dt: number) => {
-    const keyboardSpeed = 2.0 // Units per second
+    if (isGamepadActiveRef.current) {
+      // Gamepad mode: use gamepad value directly (already in -1 to 1 range)
+      keyboard1DPosition.current = gamepadValueRef.current
+    } else {
+      // Keyboard mode: accumulative position
+      const keyboardSpeed = 2.0 // Units per second
 
-    if (keysPressed.current.has('a')) {
-      keyboard1DPosition.current -= keyboardSpeed * dt
-    }
-    if (keysPressed.current.has('d')) {
-      keyboard1DPosition.current += keyboardSpeed * dt
-    }
+      if (keysPressed.current.has('a')) {
+        keyboard1DPosition.current -= keyboardSpeed * dt
+      }
+      if (keysPressed.current.has('d')) {
+        keyboard1DPosition.current += keyboardSpeed * dt
+      }
 
-    // Clamp to [-1, 1]
-    keyboard1DPosition.current = Math.max(-1, Math.min(1, keyboard1DPosition.current))
+      // Clamp to [-1, 1]
+      keyboard1DPosition.current = Math.max(-1, Math.min(1, keyboard1DPosition.current))
+    }
   }
 
   // Start trial (or ready state for 2D trials)
@@ -261,7 +286,7 @@ export function ModuleE({ moduleRunId, difficulty, onTrialComplete }: ModuleEPro
     // 2D: Use direct mouse position tracking (pixel-perfect)
     if (mode === 'baseline-2d' || mode === 'dual-task') {
       // Convert mouse canvas pixel position to normalized coordinates
-      // Right panel is from x=600 to x=1200
+      // Right panel is from x=leftPanelWidth to x=canvasWidth
       const mousePanelX = mouseCanvasX.current - leftPanelWidth
       const mousePanelY = mouseCanvasY.current
 
@@ -507,12 +532,14 @@ export function ModuleE({ moduleRunId, difficulty, onTrialComplete }: ModuleEPro
     ctx.fillStyle = '#94a3b8' // slate-400
     ctx.font = '14px sans-serif'
 
+    const input1DLabel = isGamepadActiveRef.current ? 'Rudder Pedals' : 'A/D keys'
+
     if (mode === 'baseline-1d') {
-      ctx.fillText('1D Baseline (A/D keys)', 20, 30)
+      ctx.fillText(`1D Baseline (${input1DLabel})`, 20, 30)
     } else if (mode === 'baseline-2d') {
       ctx.fillText('2D Baseline (Mouse)', leftPanelWidth + 20, 30)
     } else if (mode === 'dual-task') {
-      ctx.fillText('1D Tracking (A/D keys)', 20, 30)
+      ctx.fillText(`1D Tracking (${input1DLabel})`, 20, 30)
       ctx.fillText('2D Tracking (Mouse)', leftPanelWidth + 20, 30)
     }
 
@@ -592,8 +619,8 @@ export function ModuleE({ moduleRunId, difficulty, onTrialComplete }: ModuleEPro
     const centerY = canvasHeight / 2
 
     // Convert target normalized position to canvas coordinates (with margin)
-    const targetX = centerX + targetPos.x * (rightPanelWidth / 2) * 0.8
-    const targetY = centerY + targetPos.y * (canvasHeight / 2) * 0.8
+    const targetX = centerX + targetPos.x * (rightPanelWidth / 2) * 0.9
+    const targetY = centerY + targetPos.y * (canvasHeight / 2) * 0.9
 
     // Draw cursor at EXACT mouse position (pixel-perfect)
     const cursorX = mouseCanvasX.current

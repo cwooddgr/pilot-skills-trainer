@@ -30,8 +30,9 @@ export class OrnsteinUhlenbeckGenerator implements TargetGenerator {
 
     // Difficulty affects volatility and mean reversion
     // Higher difficulty = more volatile, faster changes
-    this.theta = 0.5 + config.difficulty * 1.5 // 0.5 to 2.0
-    this.sigma = 0.3 + config.difficulty * 0.7 // 0.3 to 1.0
+    // Speed reduced by 50% for horizontal tracking
+    this.theta = 0.25 + config.difficulty * 0.75 // 0.25 to 1.0
+    this.sigma = 0.15 + config.difficulty * 0.35 // 0.15 to 0.5
 
     this.x = this.mu
   }
@@ -82,7 +83,8 @@ export class SinusoidGenerator implements TargetGenerator {
     this.center = (config.bounds[0] + config.bounds[1]) / 2
 
     // Multiple frequencies based on difficulty
-    const baseFreq = 0.3 + config.difficulty * 0.7 // 0.3 to 1.0 Hz
+    // Speed reduced by 50% for horizontal tracking
+    const baseFreq = 0.15 + config.difficulty * 0.35 // 0.15 to 0.5 Hz
     this.frequencies = [
       baseFreq,
       baseFreq * 1.618, // Golden ratio
@@ -148,9 +150,10 @@ export class PiecewiseGenerator implements TargetGenerator {
     this.timeSinceAccelChange = 0
 
     // Difficulty affects acceleration magnitude and change frequency
-    this.maxAccel = 0.5 + config.difficulty * 1.5 // 0.5 to 2.0
-    this.maxJerk = 2.0 + config.difficulty * 4.0 // 2.0 to 6.0
-    this.accelChangePeriod = 0.5 / (1 + config.difficulty) // 0.5s to 0.25s
+    // Speed reduced by 50% for horizontal tracking
+    this.maxAccel = 0.25 + config.difficulty * 0.75 // 0.25 to 1.0
+    this.maxJerk = 1.0 + config.difficulty * 2.0 // 1.0 to 3.0
+    this.accelChangePeriod = 1.0 / (1 + config.difficulty) // 1.0s to 0.5s
   }
 
   update(dt: number): number {

@@ -21,6 +21,8 @@ import { generateStimulusSequence } from '@/utils/audioStimulus'
 import { calculateTripleTaskMetrics } from '@/utils/metricsCalculationTripleTask'
 import type { Trial, TrackingMetrics, AttentionMetrics } from '@/types'
 import { createTrial } from '@/lib/db'
+import { useHardware } from '@/context/HardwareContext'
+import { useGamepad1DInput } from '@/hooks/useGamepad1DInput'
 
 interface ModuleFProps {
   moduleRunId: string
@@ -41,6 +43,23 @@ type TrialMode =
 
 export function ModuleF({ moduleRunId, difficulty, onTrialComplete }: ModuleFProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+
+  // Hardware/gamepad input
+  const { inputMode } = useHardware()
+  const { value: gamepadValue, isActive: isGamepadActive } = useGamepad1DInput({
+    orientation: 'horizontal',
+    enabled: inputMode === 'gamepad',
+  })
+
+  // Store gamepad value in ref for use in game loop
+  const gamepadValueRef = useRef<number>(0)
+  const isGamepadActiveRef = useRef<boolean>(false)
+
+  // Keep refs in sync with hook values
+  useEffect(() => {
+    gamepadValueRef.current = gamepadValue
+    isGamepadActiveRef.current = isGamepadActive
+  }, [gamepadValue, isGamepadActive])
 
   // State (triggers re-renders)
   const [trialMode, setTrialMode] = useState<TrialMode>('idle')
@@ -205,15 +224,21 @@ export function ModuleF({ moduleRunId, difficulty, onTrialComplete }: ModuleFPro
     }
   }, [trialMode])
 
-  // Helper: Update 1D keyboard position
+  // Helper: Update 1D keyboard position (or gamepad when active)
   const updateKeyboard1D = (dt: number) => {
-    if (keysPressed.current.has('a')) {
-      keyboard1DPosition.current -= 2.0 * dt
+    if (isGamepadActiveRef.current) {
+      // Gamepad mode: use gamepad value directly (already in -1 to 1 range)
+      keyboard1DPosition.current = gamepadValueRef.current
+    } else {
+      // Keyboard mode: accumulative position
+      if (keysPressed.current.has('a')) {
+        keyboard1DPosition.current -= 2.0 * dt
+      }
+      if (keysPressed.current.has('d')) {
+        keyboard1DPosition.current += 2.0 * dt
+      }
+      keyboard1DPosition.current = Math.max(-1, Math.min(1, keyboard1DPosition.current))
     }
-    if (keysPressed.current.has('d')) {
-      keyboard1DPosition.current += 2.0 * dt
-    }
-    keyboard1DPosition.current = Math.max(-1, Math.min(1, keyboard1DPosition.current))
   }
 
   // Helper: Update 2D mouse position
@@ -855,7 +880,8 @@ export function ModuleF({ moduleRunId, difficulty, onTrialComplete }: ModuleFPro
     // Label
     ctx.fillStyle = '#94a3b8'
     ctx.font = '14px sans-serif'
-    ctx.fillText('1D Tracking (A/D keys)', offsetX + 10, 30)
+    const input1DLabel = isGamepadActiveRef.current ? 'Rudder Pedals' : 'A/D keys'
+    ctx.fillText(`1D Tracking (${input1DLabel})`, offsetX + 10, 30)
   }
 
   // Render 2D tracking task

@@ -1,6 +1,11 @@
 // Canonical data objects as specified in PROJECT.md
 
+import type { SensitivityCurve } from '@/utils/inputSystem'
+
 export type ModuleId = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G'
+
+// Re-export SensitivityCurve for convenience
+export type { SensitivityCurve } from '@/utils/inputSystem'
 
 export interface UserProfile {
   id: string
@@ -33,6 +38,7 @@ export interface AxisConfig {
   mapping: 'pitch' | 'roll' | 'yaw' | 'throttle' | 'x' | 'y' | 'none'
   deadzone: number
   sensitivity: number
+  sensitivityCurve?: SensitivityCurve
   inverted: boolean
   filterAlpha?: number
   calibrationMin?: number
